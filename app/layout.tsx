@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import { Sidebar } from "@/components/Sidebar";
+import { env } from "@/lib/env";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
   title: "Е-Праздник — Каталог детских праздников",
   description:
     "Сюжетные программы, шоу и квесты для детских и корпоративных праздников. Подробное описание каждой программы, расчёт стоимости, медиа.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
   openGraph: {
     title: "Е-Праздник",
     description: "Каталог детских праздничных программ",

@@ -151,17 +151,26 @@ function collectListItems(
 }
 
 /**
- * Characters are laid out as paragraph blocks like "🦊 Эльза — Снежная королева".
- * Strategy: take the first text token as emoji if it isn't ASCII, then split on
- * em-dash / hyphen for role.
+ * Characters can be authored as either paragraph blocks or bulleted/numbered
+ * list items in Notion. Real data uses bulleted_list_item with text like
+ * "🪶 Индеец 1" — emoji + name, sometimes with a "— role" suffix.
  */
 export function parseCharacters(blocks: NotionBlock[]): Character[] {
   const out: Character[] = [];
   for (const b of blocks) {
-    if (b.type !== "paragraph") continue;
-    const text = richTextToString((b as ParagraphBlockObjectResponse).paragraph.rich_text).trim();
-    if (text.length === 0) continue;
-    out.push(parseCharacterLine(text));
+    let text = "";
+    if (b.type === "paragraph") {
+      text = richTextToString((b as ParagraphBlockObjectResponse).paragraph.rich_text);
+    } else if (b.type === "bulleted_list_item") {
+      text = richTextToString((b as BulletedListItemBlockObjectResponse).bulleted_list_item.rich_text);
+    } else if (b.type === "numbered_list_item") {
+      text = richTextToString((b as NumberedListItemBlockObjectResponse).numbered_list_item.rich_text);
+    } else {
+      continue;
+    }
+    const trimmed = text.trim();
+    if (trimmed.length === 0) continue;
+    out.push(parseCharacterLine(trimmed));
   }
   return out;
 }
