@@ -33,9 +33,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" className={manrope.variable}>
       <body style={{ fontFamily: "var(--font-manrope), system-ui, sans-serif" }}>
+        <a href="#main" className="skip-link">
+          Перейти к содержимому
+        </a>
         <div className="app">
           <Sidebar />
-          <main className="main" style={{ minHeight: "100vh" }}>
+          <main id="main" className="main" style={{ minHeight: "100vh" }}>
             {children}
           </main>
         </div>

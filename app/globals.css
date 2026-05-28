@@ -882,6 +882,71 @@ a { color: inherit; text-decoration: none; }
 /* Generic cover SVG sizing helpers */
 .cover-svg { width: 100%; height: 100%; display: block; }
 
+/* ====== Accessibility helpers ====== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 8px;
+  background: var(--text);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  z-index: 100;
+  transition: top .15s;
+}
+.skip-link:focus {
+  top: 8px;
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}
+/* Visible focus ring for every focusable element (over-and-above proto). */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[role="tab"]:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ====== Mobile-friendly tweaks (proto was 1320px desktop-first) ====== */
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .sb { position: relative; height: auto; padding: 16px 14px; }
+  .sb-spacer { display: none; }
+  .sb-user { display: none; }
+  .main { padding: 20px 16px 80px; }
+  .qa-grid { grid-template-columns: repeat(2, 1fr); }
+  .cards-grid, .cards-grid.lg { grid-template-columns: repeat(2, 1fr); }
+  .cards-grid-3 { grid-template-columns: 1fr; }
+  .prog-hero { grid-template-columns: 1fr; }
+  .prog-hero-info { padding: 24px 20px; }
+  .prog-hero-img { min-height: 240px; }
+  .prog-body { grid-template-columns: 1fr; gap: 18px; }
+  .hero-row { flex-direction: column; align-items: flex-start; }
+  .metrics-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .qa-grid { grid-template-columns: 1fr; }
+  .cards-grid, .cards-grid.lg { grid-template-columns: 1fr; }
+  .page-title { font-size: 26px; }
+  .prog-hero-title { font-size: 28px; }
+}
+
 /* ====== Animations ====== */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .page-enter { animation: fadeUp .35s ease-out both; }
