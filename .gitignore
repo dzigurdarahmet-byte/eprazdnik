@@ -10,6 +10,8 @@ coverage/
 .next/
 out/
 build/
+next-env.d.ts.bak
+tsconfig.tsbuildinfo
 
 # Environment (НЕ коммитить секреты)
 .env*.local
