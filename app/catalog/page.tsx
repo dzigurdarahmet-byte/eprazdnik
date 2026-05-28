@@ -8,6 +8,9 @@ import { listPrograms } from "@/lib/notion/programs";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
 
 export const revalidate = REVALIDATE_SECONDS;
+// Don't prerender at build time — Notion API rate limits make build-time
+// data fetching brittle. ISR keeps the first user request warm for 60s.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Каталог программ — Е-Праздник",

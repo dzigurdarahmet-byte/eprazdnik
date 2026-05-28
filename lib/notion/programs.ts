@@ -1,6 +1,7 @@
 // High-level Notion queries for programs.
 // Every public function returns domain types (ProgramSummary / ProgramDetail) —
 // no raw Notion shapes leak past this module.
+import * as React from "react";
 import type {
   DatabaseObjectResponse,
   PageObjectResponse,
@@ -23,6 +24,7 @@ import {
   NotionRateLimitError,
   ProgramNotFoundError,
 } from "@/lib/notion/errors";
+import { throttle } from "@/lib/notion/throttle";
 import { isFullBlock } from "@/types/notion";
 import type { ProgramDetail, ProgramSummary } from "@/types/program";
 import { parseProgram, type BlockTree } from "@/lib/notion/parser";
@@ -89,6 +91,15 @@ export function pageToSummary(page: PageObjectResponse): ProgramSummary {
   };
 }
 
+// React.cache is request-scoped memoization. It's available under the Next.js
+// server runtime but not in the bare vitest/jsdom env, so we fall back to
+// identity when it's missing (tests already mock at the SDK boundary).
+type CacheWrap = <Args extends readonly unknown[], R>(fn: (...args: Args) => R) => (...args: Args) => R;
+const cache: CacheWrap =
+  typeof React.cache === "function"
+    ? (React.cache as unknown as CacheWrap)
+    : ((fn) => fn);
+
 function classifyError(err: unknown): NotionError {
   if (err instanceof NotionError) return err;
   const e = err as { code?: string; status?: number; message?: string; headers?: Record<string, string> };
@@ -104,11 +115,13 @@ async function fetchBlockTree(blockId: string): Promise<BlockTree[]> {
   const out: BlockTree[] = [];
   let cursor: string | undefined = undefined;
   do {
-    const resp = await notion.blocks.children.list({
-      block_id: blockId,
-      start_cursor: cursor,
-      page_size: 100,
-    });
+    const resp = await throttle(() =>
+      notion.blocks.children.list({
+        block_id: blockId,
+        start_cursor: cursor,
+        page_size: 100,
+      }),
+    );
     for (const raw of resp.results) {
       if (!isFullBlock(raw)) continue;
       const node: BlockTree = raw;
@@ -122,17 +135,20 @@ async function fetchBlockTree(blockId: string): Promise<BlockTree[]> {
   return out;
 }
 
-export async function listPrograms(): Promise<ProgramSummary[]> {
+export const listPrograms = cache(_listPrograms);
+async function _listPrograms(): Promise<ProgramSummary[]> {
   const start = Date.now();
   try {
     const results: PageObjectResponse[] = [];
     let cursor: string | undefined = undefined;
     do {
-      const resp = await notion.databases.query({
-        database_id: DB_PROGRAMS,
-        start_cursor: cursor,
-        page_size: 100,
-      });
+      const resp = await throttle(() =>
+        notion.databases.query({
+          database_id: DB_PROGRAMS,
+          start_cursor: cursor,
+          page_size: 100,
+        }),
+      );
       for (const page of resp.results) {
         if (isFullPage(page)) results.push(page);
       }
@@ -153,10 +169,11 @@ export async function listPrograms(): Promise<ProgramSummary[]> {
   }
 }
 
-export async function getProgram(pageId: string): Promise<ProgramDetail> {
+export const getProgram = cache(_getProgram);
+async function _getProgram(pageId: string): Promise<ProgramDetail> {
   const start = Date.now();
   try {
-    const page = await notion.pages.retrieve({ page_id: pageId });
+    const page = await throttle(() => notion.pages.retrieve({ page_id: pageId }));
     if (page.object !== "page" || !("properties" in page)) {
       throw new NotionError(`Partial page returned for ${pageId}`);
     }
@@ -172,7 +189,8 @@ export async function getProgram(pageId: string): Promise<ProgramDetail> {
   }
 }
 
-export async function getProgramBySlug(slug: string): Promise<ProgramDetail | null> {
+export const getProgramBySlug = cache(_getProgramBySlug);
+async function _getProgramBySlug(slug: string): Promise<ProgramDetail | null> {
   const all = await listPrograms();
   const match = all.find((p) => p.slug === slug);
   if (!match) {

@@ -11,7 +11,12 @@ import type {
 } from "@notionhq/client/build/src/api-endpoints";
 
 import { logger } from "@/lib/logger";
-import { NOTION_SECTIONS } from "@/lib/constants";
+import {
+  IGNORED_SECTION_PATTERNS,
+  SECTION_IDS,
+  SECTION_MATCHERS,
+  type SectionId,
+} from "@/lib/constants";
 import type { NotionBlock, NotionRichText } from "@/types/notion";
 import { isFullBlock } from "@/types/notion";
 import type {
@@ -52,8 +57,6 @@ export function flattenBlocks(blocks: BlockTree[]): NotionBlock[] {
   return out;
 }
 
-const SECTION_KEYS = Object.values(NOTION_SECTIONS);
-
 function blockHeadingText(b: NotionBlock): string | null {
   if (b.type === "heading_1") return richTextToString((b as Heading1BlockObjectResponse).heading_1.rich_text);
   if (b.type === "heading_2") return richTextToString((b as Heading2BlockObjectResponse).heading_2.rich_text);
@@ -61,25 +64,32 @@ function blockHeadingText(b: NotionBlock): string | null {
   return null;
 }
 
-function matchSectionKey(headingText: string): string | null {
-  // Tolerant match: any heading text that contains a known section title.
-  for (const key of SECTION_KEYS) {
-    if (headingText.includes(key)) return key;
+function matchSectionKey(headingText: string): SectionId | null {
+  for (const { id, pattern } of SECTION_MATCHERS) {
+    if (pattern.test(headingText)) return id;
   }
   return null;
 }
 
+function isIgnoredHeading(headingText: string): boolean {
+  return IGNORED_SECTION_PATTERNS.some((p) => p.test(headingText));
+}
+
 /**
  * Walks the flat block stream, grouping blocks by the most recent recognized
- * section heading. Returns Map<sectionTitle, blocks-following-that-heading>.
+ * section heading. Returns Map<SectionId, blocks-following-that-heading>.
  */
-export function splitBySectionHeaders(flat: NotionBlock[]): Map<string, NotionBlock[]> {
-  const sections = new Map<string, NotionBlock[]>();
-  let current: string | null = null;
+export function splitBySectionHeaders(flat: NotionBlock[]): Map<SectionId, NotionBlock[]> {
+  const sections = new Map<SectionId, NotionBlock[]>();
+  let current: SectionId | null = null;
 
   for (const b of flat) {
     const heading = blockHeadingText(b);
     if (heading !== null) {
+      if (isIgnoredHeading(heading)) {
+        current = null;
+        continue;
+      }
       const key = matchSectionKey(heading);
       if (key !== null) {
         current = key;
@@ -278,35 +288,36 @@ export function parseProgram(blocks: BlockTree[]): ProgramContent {
   const sections = splitBySectionHeaders(flat);
 
   const subtitle = extractSubtitle(flat);
-  if (!subtitle) logger.warn({ section: "subtitle" }, "parser.section_missing");
 
-  const legendBlocks = sections.get(NOTION_SECTIONS.LEGEND) ?? [];
-  if (legendBlocks.length === 0) logger.warn({ section: NOTION_SECTIONS.LEGEND }, "parser.section_missing");
-  const legend = joinParagraphs(legendBlocks);
+  const legendBlocks = sections.get(SECTION_IDS.LEGEND) ?? [];
+  const finaleBlocks = sections.get(SECTION_IDS.FINALE) ?? [];
+  const activitiesBlocks = sections.get(SECTION_IDS.ACTIVITIES) ?? [];
+  const charactersBlocks = sections.get(SECTION_IDS.CHARACTERS) ?? [];
+  const techBlocks = sections.get(SECTION_IDS.TECH_REQUIREMENTS) ?? [];
+  const pricingBlocks = sections.get(SECTION_IDS.PRICING) ?? [];
+  const mediaBlocks = sections.get(SECTION_IDS.MEDIA) ?? [];
 
-  const finaleBlocks = sections.get(NOTION_SECTIONS.FINALE) ?? [];
-  if (finaleBlocks.length === 0) logger.warn({ section: NOTION_SECTIONS.FINALE }, "parser.section_missing");
-  const finale = joinParagraphs(finaleBlocks);
+  // Single warn line listing what's missing — quieter at build time than one
+  // line per section, but the signal is preserved for triage.
+  const missing: string[] = [];
+  if (!subtitle) missing.push("subtitle");
+  if (legendBlocks.length === 0) missing.push("legend");
+  if (finaleBlocks.length === 0) missing.push("finale");
+  if (activitiesBlocks.length === 0) missing.push("activities");
+  if (charactersBlocks.length === 0) missing.push("characters");
+  if (techBlocks.length === 0) missing.push("techRequirements");
+  if (pricingBlocks.length === 0) missing.push("pricing");
+  if (mediaBlocks.length === 0) missing.push("media");
+  if (missing.length > 0) logger.warn({ missing }, "parser.sections_missing");
 
-  const activitiesBlocks = sections.get(NOTION_SECTIONS.ACTIVITIES) ?? [];
-  if (activitiesBlocks.length === 0) logger.warn({ section: NOTION_SECTIONS.ACTIVITIES }, "parser.section_missing");
-  const activities = collectListItems(activitiesBlocks, "numbered_list_item");
-
-  const charactersBlocks = sections.get(NOTION_SECTIONS.CHARACTERS) ?? [];
-  if (charactersBlocks.length === 0) logger.warn({ section: NOTION_SECTIONS.CHARACTERS }, "parser.section_missing");
-  const characters = parseCharacters(charactersBlocks);
-
-  const techBlocks = sections.get(NOTION_SECTIONS.TECH_REQUIREMENTS) ?? [];
-  if (techBlocks.length === 0) logger.warn({ section: NOTION_SECTIONS.TECH_REQUIREMENTS }, "parser.section_missing");
-  const techRequirements = collectListItems(techBlocks, "bulleted_list_item");
-
-  const pricingBlocks = sections.get(NOTION_SECTIONS.PRICING) ?? [];
-  if (pricingBlocks.length === 0) logger.warn({ section: NOTION_SECTIONS.PRICING }, "parser.section_missing");
-  const pricing = parsePricing(pricingBlocks);
-
-  const mediaBlocks = sections.get(NOTION_SECTIONS.MEDIA) ?? [];
-  if (mediaBlocks.length === 0) logger.warn({ section: NOTION_SECTIONS.MEDIA }, "parser.section_missing");
-  const media = parseMedia(mediaBlocks);
-
-  return { subtitle, legend, finale, activities, characters, techRequirements, pricing, media };
+  return {
+    subtitle,
+    legend: joinParagraphs(legendBlocks),
+    finale: joinParagraphs(finaleBlocks),
+    activities: collectListItems(activitiesBlocks, "numbered_list_item"),
+    characters: parseCharacters(charactersBlocks),
+    techRequirements: collectListItems(techBlocks, "bulleted_list_item"),
+    pricing: parsePricing(pricingBlocks),
+    media: parseMedia(mediaBlocks),
+  };
 }
