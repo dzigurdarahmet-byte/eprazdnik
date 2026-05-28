@@ -1,7 +1,8 @@
-// Static sidebar shared by every page. Server Component — no interaction.
-// Items that don't have a real screen yet route to "/" so visitors don't
-// get a dead link; their visual placement still telegraphs the product surface.
+// Static sidebar shared by every page. Client Component just for usePathname
+// so it can highlight the active item — no per-page wiring needed.
+"use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/Icon";
 
 type SbItem = { id: string; href: string; label: string; ico: IconName; badge?: number };
@@ -22,6 +23,13 @@ const RESOURCES: SbItem[] = [
   { id: "favs", href: "/", label: "Избранное", ico: "star" },
 ];
 
+function activeIdFor(pathname: string): string {
+  if (pathname === "/") return "home";
+  if (pathname.startsWith("/catalog")) return "catalog";
+  if (pathname.startsWith("/program")) return "catalog";
+  return "home";
+}
+
 function renderItem(it: SbItem, active: string) {
   const cls = "sb-item " + (active === it.id ? "active" : "");
   return (
@@ -35,7 +43,9 @@ function renderItem(it: SbItem, active: string) {
   );
 }
 
-export function Sidebar({ active = "home" }: { active?: string }) {
+export function Sidebar() {
+  const pathname = usePathname() ?? "/";
+  const active = activeIdFor(pathname);
   return (
     <aside className="sb" aria-label="Основная навигация">
       <div className="sb-logo">

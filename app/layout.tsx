@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
+import { Sidebar } from "@/components/Sidebar";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -31,7 +32,14 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" className={manrope.variable}>
-      <body style={{ fontFamily: "var(--font-manrope), system-ui, sans-serif" }}>{children}</body>
+      <body style={{ fontFamily: "var(--font-manrope), system-ui, sans-serif" }}>
+        <div className="app">
+          <Sidebar />
+          <main className="main" style={{ minHeight: "100vh" }}>
+            {children}
+          </main>
+        </div>
+      </body>
     </html>
   );
 }
