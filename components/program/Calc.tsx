@@ -79,11 +79,17 @@ export function Calc({
           url={sheetUrl || undefined}
         />
       </div>
-      {priceFrom !== null ? (
-        <div className="calc-price">
-          Цена от <b>{formatPrice(priceFrom)}</b>
-        </div>
-      ) : null}
+      <div className="calc-price">
+        {priceFrom !== null ? (
+          <>
+            Цена от <b>{formatPrice(priceFrom)}</b>
+          </>
+        ) : (
+          <>
+            Цена <b>по запросу</b>
+          </>
+        )}
+      </div>
     </>
   );
 }

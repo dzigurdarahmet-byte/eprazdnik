@@ -58,8 +58,7 @@ exports[`ElementCard > matches snapshot 1`] = `
         <span
           class="pcard-age"
         >
-          от 
-          6 500 ₽
+          от 6 500 ₽
         </span>
       </div>
     </div>

@@ -25,11 +25,13 @@ export default async function HomePage() {
   const b2bCount = programs.filter((p) => isB2B(p.tags, p.audience)).length;
   const recents = programs.slice(0, 6);
 
+  // Hide-at-zero, единообразно с разделами сайдбара: пустой раздел не показываем,
+  // чтобы менеджер не упирался в пустую страницу.
   const quickCards = [
     { href: "/catalog", icon: "catalog", count: programs.length, label: "Все программы", sub: "Каталог сюжетных программ" },
     { href: "/elements", icon: "elements", count: elements.length, label: "Элементы и доп.услуги", sub: "Библиотека элементов" },
     { href: "/catalog?audience=B2B", icon: "b2b", count: b2bCount, label: "B2B-каталог", sub: "Корпоративные мероприятия" },
-  ];
+  ].filter((c) => c.count > 0);
 
   return (
     <div className="home-wrap">
