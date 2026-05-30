@@ -1,31 +1,48 @@
 # Е-Праздник Каталог
 
-Кастомный сайт-каталог для агентства детских праздников «Е-Праздник». MVP на Next.js 14 (App Router) + Notion API.
+Внутренний read-only справочник программ, шоу и мастер-классов агентства «Е-Праздник» для
+менеджеров. Next.js 14 (App Router) + Notion API, дизайн — Notion-воркспейс-прототип.
 
 **GitHub:** https://github.com/dzigurdarahmet-byte/eprazdnik
 **Production:** _добавить URL после деплоя на Vercel_
 
+## Источник дизайна
+
+Папка [`proto-notion/`](./proto-notion) — **единственный источник истины по визуалу** (9 JSX +
+`index.html`, React+Babel standalone). Presentation перенесён из неё в `app/globals.css` и
+компоненты **токен-в-токен**. `proto-notion/` **не импортируется в билд** — это только референс.
+`proto_DEPRECATED/` — предыдущий прототип, оставлен для истории.
+
 ## Стек
 
-- **Next.js 14** (App Router, Server + Client Components)
-- **TypeScript strict** (+ `noUncheckedIndexedAccess`)
-- **Tailwind CSS** + кастомный CSS из прототипа (`app/globals.css`)
-- **Notion API** (`@notionhq/client`) — Notion как headless CMS
-- **Vitest** + `@testing-library/react` — 49 тестов
-- **Pino** — structured logging
-- **Zod** — env validation
-- **Lucide-react** — icons
-- **Deploy:** Vercel (ISR с revalidate=60)
+- **Next.js 14** (App Router, Server + Client Components, ISR `revalidate=60`)
+- **TypeScript strict** (+ `noUncheckedIndexedAccess`), 0 `any`
+- **CSS** — семантические классы в `app/globals.css`, значения из `proto-notion/` точь-в-точь
+- **Notion API** (`@notionhq/client`) — две базы (Программы + Элементы) как headless CMS
+- **Vitest** + `@testing-library/react` — 80 тестов
+- **Pino** — structured logging · **Zod** — env validation
+- **Edge middleware** — пароль-гейт (один общий пароль)
+- **Deploy:** Vercel
+
+## Модель данных (федерация трёх источников)
+
+- **Notion** — каталог + тексты (легенда, активности, персонажи, теги, статус, скрипты, кейсы) →
+  на сайте через ISR.
+- **Google Sheets** — цены, маржа, расходники → карточки-ссылки в блоке «Расчёт» (сайт не
+  пересобирает спредшит). URL берётся из свойства/блока программы в Notion.
+- **Я.Диск** — фото/видео/афиша/КП → плитки-ссылки.
+
+Сайт **read-only**: правки контента — в Notion, цены — в Google-листе, медиа — на Я.Диске.
 
 ## Запуск локально
 
 ```bash
 npm install
-cp .env.example .env.local       # затем заполнить NOTION_TOKEN
+cp .env.example .env.local       # заполнить NOTION_TOKEN и SITE_PASSWORD
 npm run dev
 ```
 
-Открыть http://localhost:3000.
+Открыть http://localhost:3000 → редирект на `/login` → ввести `SITE_PASSWORD`.
 
 ## Команды
 
@@ -36,108 +53,95 @@ npm run dev
 | `npm run start` | Запуск собранного билда |
 | `npm run lint` | ESLint, 0 warnings обязательно |
 | `npm run typecheck` | TypeScript без эмита |
-| `npm run test` | Vitest, все 49 тестов |
-| `npm run test:coverage` | Coverage report |
+| `npm run test` | Vitest, все 80 тестов |
+| `npm run test:coverage` | Coverage (lib ≥ 70, components ≥ 50) |
 
 ## Env переменные
 
 | Переменная | Что |
 |---|---|
-| `NOTION_TOKEN` | Internal integration token из https://www.notion.so/profile/integrations |
+| `NOTION_TOKEN` | Internal integration token (notion.so/profile/integrations) |
 | `NOTION_DB_PROGRAMS_ID` | UUID базы «📚 Программы» |
-| `NOTION_DB_ELEMENTS_ID` | UUID базы «🧩 Элементы» |
+| `NOTION_DB_ELEMENTS_ID` | UUID базы «🧩 Элементы авторских программ» |
 | `NEXT_PUBLIC_SITE_URL` | Публичный URL (для OG / canonical) |
+| `SITE_PASSWORD` | Общий пароль для входа на сайт (гейт) |
 | `NODE_ENV` | `development` локально / `production` на Vercel |
 
 Шаблон — в `.env.example`. Реальные значения — только в `.env.local` (gitignore).
 
+## Доступ (пароль-гейт)
+
+- Edge `middleware.ts` пускает по httpOnly-cookie, иначе редиректит на `/login`.
+- `/login` (server action) сверяет пароль с `SITE_PASSWORD` и ставит cookie.
+- Без гейта доступны только `/login`, `/api/health` и статика.
+- Весь сайт `noindex` (внутренний справочник; снять при переезде на публичный домен).
+
 ## Структура
 
 ```
-eprazdnik/
-├── app/
-│   ├── layout.tsx              # html lang="ru", шрифты, skip-link, sidebar
-│   ├── page.tsx                # Главная (Server)
-│   ├── globals.css             # Стили из proto/styles.css + a11y + mobile
-│   ├── catalog/page.tsx        # /catalog (Server + Client filter)
-│   ├── program/[slug]/page.tsx # /program/[slug] (Server, ISR)
-│   ├── program/[slug]/not-found.tsx
-│   ├── api/health/route.ts     # /api/health
-│   ├── error.tsx               # Route error boundary
-│   ├── global-error.tsx        # Layout error boundary
-│   └── not-found.tsx           # Site 404
-├── components/
-│   ├── Sidebar.tsx            # Client (usePathname for active state)
-│   ├── ProgramCard.tsx        # Server, wraps in next/link
-│   ├── Hero.tsx               # Server, takes totalPrograms prop
-│   ├── Cover.tsx              # Server, 14 named gradient variants
-│   ├── Icon.tsx               # lucide-react wrapper
-│   ├── Tabs.tsx               # Client (useState)
-│   ├── MediaCard.tsx          # Server, target=_blank rel=noopener
-│   ├── SearchBox.tsx          # Client
-│   ├── Chips.tsx              # Client (multi-select toggle)
-│   ├── CatalogContent.tsx     # Client (composes Search/Chips/grid)
-│   └── ErrorBoundary.tsx      # Client (subtree fallback)
-├── lib/
-│   ├── env.ts                 # zod-validated env
-│   ├── logger.ts              # pino
-│   ├── constants.ts           # template-prefix, ISR seconds, SECTION_MATCHERS
-│   ├── slugify.ts             # ru→latin URL slug
-│   ├── format.ts              # ru-locale price formatter
-│   └── notion/
-│       ├── client.ts          # @notionhq/client singleton
-│       ├── errors.ts          # NotionError + variants
-│       ├── parser.ts          # BlockTree → ProgramContent
-│       ├── programs.ts        # listPrograms, getProgram, getProgramBySlug
-│       ├── properties.ts      # tolerant page-property readers
-│       └── throttle.ts        # 350ms serialized queue + 429 backoff
-├── types/                     # ProgramSummary / ProgramDetail / NotionBlock alias
-├── tests/
-│   ├── unit/                  # parser, env, slugify (24 tests)
-│   ├── integration/           # notion (5 tests with mocked SDK)
-│   ├── snapshot/              # 7 components (20 tests)
-│   └── fixtures/              # block + page builders
-├── proto/                     # Read-only HTML/JSX prototype (referenced)
-├── next.config.js             # security headers (HSTS, X-Frame-Options, …)
-├── tsconfig.json              # strict
-└── vitest.config.ts           # jsdom env, coverage thresholds
+app/
+├── layout.tsx                  # root: html, шрифты (Inter/JetBrains Mono/Fraunces), noindex
+├── globals.css                 # дизайн-токены + классы из proto-notion (токен-в-токен)
+├── login/page.tsx              # экран входа (server action)
+├── api/health/route.ts         # /api/health → {status, programsCount, elementsCount}
+├── global-error.tsx            # корневой error boundary
+└── (site)/                     # workspace-шелл (Sidebar + TopBar), под гейтом
+    ├── layout.tsx              # шелл + live counts из Notion
+    ├── page.tsx                # Главная
+    ├── catalog/page.tsx        # Программы (фильтры/поиск клиентские)
+    ├── program/[slug]/page.tsx # Карточка (ISR, on-demand)
+    ├── elements/page.tsx       # Библиотека Элементов
+    ├── error.tsx · not-found.tsx
+components/
+├── shell/{Sidebar,TopBar}.tsx
+├── catalog/{ProgramCard,CatalogView}.tsx
+├── program/{Calc,MediaGrid,LinkOrText}.tsx
+├── elements/{ElementCard,ElementsView}.tsx
+└── ui/{Tag,Breadcrumbs,IconSlot,FilterPill,Avatar,Chevron,Plus,SheetIcon,SectionLabel,PropertyRow}.tsx
+lib/
+├── env.ts · logger.ts · constants.ts · slugify.ts · format.ts
+├── status.ts · tag-color.ts · accent.ts · catalog-filter.ts · auth.ts
+└── notion/{client,errors,parser,programs,elements,properties,throttle}.ts
+types/{program,element,notion}.ts
+middleware.ts                   # пароль-гейт
+proto-notion/                   # ИСТОЧНИК ДИЗАЙНА (в билд не импортируется)
 ```
-
-## Обновление контента
-
-Контент-редактор работает в Notion. Все изменения в страницах программ автоматически становятся доступными на сайте через **ISR (Incremental Static Regeneration)** — каждые 60 секунд первый запрос триггерит фоновое перегенерирование страницы, остальные пользователи в течение этого окна получают кешированный HTML.
-
-Принудительная инвалидация: на Vercel дашборде → Deployments → Redeploy с галкой «Clear cache», либо вызвать API `revalidatePath` (не реализовано в MVP).
-
-## Деплой на Vercel
-
-1. Импортировать репозиторий в Vercel
-2. Environment Variables → Production:
-   - `NOTION_TOKEN`
-   - `NOTION_DB_PROGRAMS_ID`
-   - `NOTION_DB_ELEMENTS_ID`
-   - `NEXT_PUBLIC_SITE_URL` (после привязки домена)
-3. Production branch: `main`
-4. Build command по умолчанию (`next build`)
-5. Никаких дополнительных настроек — Vercel автоматически обнаруживает Next.js
 
 ## Notion-интеграция
 
-- **Структура страницы:** `heading_2` (подзаголовок) → `column_list` × 3 пары с секциями `01 Легенда / 02 Финал / 03 Активности / 04 Персонажи / 05 Технические требования / 06 Расчёт / 07 Медиа`. Секции `08 Творческий отдел` и `10 Элементы программы` парсер игнорирует.
-- **Парсер толерантен** к вариациям заголовков: `01 📚 Легенда` / `Легенда` / `📖 Легенда` — все распознаются через regex (см. `lib/constants.ts → SECTION_MATCHERS`).
-- **Свойства программы** (категория, теги, возраст, длительность, цена) тоже читаются с fallback'ом по нескольким именам.
-- **Шаблон-страницы** с заголовками, начинающимися на `[ШАБЛОН]`, исключаются из каталога.
+- **Две базы.** Программы (`Название/Цена от/Теги/Формат/Категория/Размер группы/Возраст/Статус` +
+  relation на Элементы) и Элементы (`Название/Цена от/Категория/Статус/Теги` + relation на Программы).
+- **Парсер толерантен** к вариациям заголовков (regex, см. `lib/constants.ts → SECTION_MATCHERS`):
+  Легенда / Персонажи / Активности / Финал / Расчёт / Медиа / Скрипты продаж / Кейсы.
+- **Свойства** читаются с fallback'ом по нескольким именам (`lib/notion/properties.ts`).
+- **Скрыто из каталога:** заголовки на `[ШАБЛОН]` и `🧪` (тест/превью).
+- **Расчёт:** жёлтая плашка + ссылки на Google Sheets (URL из Notion); таблица из Элементов **не**
+  строится. Если URL не заведён — карточки неактивны, страница не падает.
 
-## Ограничения MVP
+## Обновление контента
 
-- `/program/[slug]` НЕ пре-рендерится при build (пустой `generateStaticParams`). Причина — Notion API rate-limit (~3 req/sec) делает параллельный SSG нестабильным при 16 программах × ~10 запросов на каждую. Каждая страница лениво генерируется на первом запросе и кешируется на 60 секунд.
-- `/catalog` помечена `dynamic = "force-dynamic"` по той же причине.
-- Lighthouse прогон не сделан в этой итерации — нужен запущенный prod-сервер + Chrome (ручной шаг на CI).
+Редактор работает в Notion; изменения текста становятся доступны на сайте через **ISR** — каждые
+60 секунд первый запрос триггерит фоновое перегенерирование. Цены меняются в Google-листе, медиа —
+на Я.Диске; сайт ссылается.
 
-## Что нужно от Sergey
+## Деплой на Vercel
 
-- [ ] Добавить env переменные в Vercel Project Settings → Environment Variables
-- [ ] Подтвердить production URL и обновить `NEXT_PUBLIC_SITE_URL`
-- [ ] Подключить домен (если не Vercel-subdomain)
-- [ ] Прогнать Lighthouse CI после деплоя (Performance ≥ 80, Accessibility ≥ 90)
-- [ ] Опционально: Vercel uptime monitoring → /api/health, alerts на 503
+1. Импортировать репозиторий, Production branch = `main`.
+2. Environment Variables → Production: `NOTION_TOKEN`, `NOTION_DB_PROGRAMS_ID`,
+   `NOTION_DB_ELEMENTS_ID`, `NEXT_PUBLIC_SITE_URL`, **`SITE_PASSWORD`**.
+3. Build command по умолчанию (`next build`).
+
+## Ограничения
+
+- `/program/[slug]` не пре-рендерится при build (пустой `generateStaticParams`) из-за rate-limit
+  Notion (~3 req/sec) — генерируется лениво на первом запросе и кешируется на 60 с.
+- `/catalog` и `/elements` динамические (читают `searchParams`); от rate-limit защищает throttle.
+- Lighthouse прогон — ручной шаг на CI (Performance ≥ 80, Accessibility ≥ 90).
+
+## Что нужно от Sergey / руководителя
+
+- [ ] `SITE_PASSWORD` (и остальные env) в Vercel Project Settings.
+- [ ] Заархивировать в Notion строку `🧪 Индейский квест — превью шапки`.
+- [ ] Проставить у программ ссылку на Google-лист (свойство/блок) → активирует блок «Расчёт».
+- [ ] Заполнить «Скрипты продаж», «Кейсы», добавить значение `Площадка` в поле `Формат`.
+- [ ] Прогнать Lighthouse после деплоя; подключить домен и снять `noindex`.
