@@ -119,7 +119,11 @@ export function Sidebar({ programsCount, elementsCount, formatCounts, elementCat
   const [programsOpen, setProgramsOpen] = useState(onCatalog);
   const [elementsOpen, setElementsOpen] = useState(onElements);
 
-  const formats = orderedKeys(formatCounts, FORMAT_ORDER);
+  // Drop the catch-all format whose label equals the parent ("Программа" → "Программы"),
+  // so the expanded list never duplicates the parent item.
+  const formats = orderedKeys(formatCounts, FORMAT_ORDER).filter(
+    (v) => (FORMAT_META[v]?.label ?? v) !== "Программы",
+  );
   const cats = orderedKeys(elementCatCounts, ELEMENT_CAT_ORDER);
 
   return (
