@@ -15,6 +15,8 @@ const schema = z.object({
   NOTION_DB_PROGRAMS_ID: NotionIdSchema,
   NOTION_DB_ELEMENTS_ID: NotionIdSchema,
   NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
+  // Shared password for the site gate (§4.10). Edge middleware compares against it.
+  SITE_PASSWORD: z.string().min(1, "SITE_PASSWORD required"),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -23,7 +25,7 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
   const parsed = schema.safeParse(source);
   if (!parsed.success) {
     const fieldErrors = parsed.error.flatten().fieldErrors;
-    // Logging via stderr-friendly throw: no console.log in prod code.
+    // Surfaced via a thrown error (no stdout logging in production code).
     throw new Error(
       `Invalid environment variables: ${JSON.stringify(fieldErrors)}`,
     );
