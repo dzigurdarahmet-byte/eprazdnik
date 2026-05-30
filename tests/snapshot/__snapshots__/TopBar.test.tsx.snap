@@ -1,0 +1,29 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`TopBar > matches snapshot and shows the section title 1`] = `
+<div>
+  <div
+    class="topbar"
+  >
+    <div
+      class="topbar-crumbs"
+    >
+      <span
+        class="arrow"
+      >
+        ‹
+      </span>
+      <span
+        class="arrow"
+      >
+        ›
+      </span>
+      <span
+        class="title"
+      >
+        Программы
+      </span>
+    </div>
+  </div>
+</div>
+`;

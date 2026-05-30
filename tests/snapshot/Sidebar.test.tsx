@@ -1,42 +1,27 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render } from "@testing-library/react";
 
-// next/navigation's usePathname needs a router context that vitest doesn't provide.
-vi.mock("next/navigation", () => ({
-  usePathname: () => "/catalog",
-}));
+vi.mock("next/navigation", () => ({ usePathname: () => "/catalog" }));
 
-import { Sidebar } from "@/components/Sidebar";
-
-afterEach(() => {
-  cleanup();
-});
+import { Sidebar } from "@/components/shell/Sidebar";
 
 describe("Sidebar", () => {
-  it("renders every navigation entry", () => {
-    const { container } = render(<Sidebar />);
-    const expectedLabels = [
-      "Главная",
-      "Каталог услуг",
-      "Мои подборки",
-      "Скрипты продаж",
-      "Прайсы и КП",
-      "Медиа",
-      "Избранное",
-    ];
-    const text = container.textContent ?? "";
-    for (const label of expectedLabels) {
-      expect(text.includes(label), `sidebar contains «${label}»`).toBe(true);
-    }
+  const props = {
+    programsCount: 16,
+    elementsCount: 30,
+    formatCounts: { Программа: 8, Квест: 4, Шоу: 4 },
+    elementCatCounts: { Артист: 12, "Ростовая кукла": 6 },
+  };
+
+  it("matches snapshot with live counts", () => {
+    const { container } = render(<Sidebar {...props} />);
+    expect(container).toMatchSnapshot();
   });
 
-  it("marks the catalog item active when pathname is /catalog", () => {
-    const { container } = render(<Sidebar />);
-    const links = Array.from(container.querySelectorAll("a"));
-    const catalogLink = links.find((a) => a.textContent?.trim() === "Каталог услуг");
-    const homeLink = links.find((a) => a.textContent?.trim() === "Главная");
-    expect(catalogLink, "catalog link exists").toBeTruthy();
-    expect(catalogLink?.className, "active class on catalog").toContain("active");
-    expect(homeLink?.className, "no active on home").not.toContain("active");
+  it("renders only formats that exist in the counts", () => {
+    const { getByText, queryByText } = render(<Sidebar {...props} />);
+    expect(getByText("Квесты")).toBeTruthy();
+    // Тимбилдинги has no count → hidden.
+    expect(queryByText("Тимбилдинги")).toBeNull();
   });
 });

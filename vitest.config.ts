@@ -24,11 +24,10 @@ export default defineConfig({
         "**/*.d.ts",
         "**/index.ts",
       ],
+      // Per-spec §6.4: lib ≥ 70, components ≥ 50 (glob-scoped thresholds).
       thresholds: {
-        lines: 70,
-        functions: 70,
-        branches: 60,
-        statements: 70,
+        "lib/**": { lines: 70, functions: 70, branches: 60, statements: 70 },
+        "components/**": { lines: 50, functions: 50, branches: 40, statements: 50 },
       },
     },
   },

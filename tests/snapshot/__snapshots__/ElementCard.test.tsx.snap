@@ -1,0 +1,68 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ElementCard > matches snapshot 1`] = `
+<div>
+  <div
+    class="pcard"
+  >
+    <div
+      class="pcard-accent"
+      style="background: rgb(61, 111, 168);"
+    />
+    <div
+      class="pcard-body"
+    >
+      <div
+        class="pcard-head"
+      >
+        <span
+          style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: rgb(234, 241, 250); border: 1px dashed rgb(61, 111, 168); border-radius: 5px; color: rgb(61, 111, 168); flex-shrink: 0;"
+          title="icon: element"
+        >
+          <span
+            style="font-family: var(--font-mono), ui-monospace, monospace; font-size: 8px; letter-spacing: .02em; opacity: 0.75; white-space: nowrap; user-select: none;"
+          >
+            elemen
+          </span>
+        </span>
+        <span
+          class="tag tag-green"
+        >
+          <span
+            class="tag-dot"
+          >
+            🟢
+          </span>
+          Доступен
+        </span>
+      </div>
+      <div>
+        <div
+          class="pcard-title"
+        >
+          Ростовой Олаф
+        </div>
+      </div>
+      <div
+        class="pcard-foot"
+      >
+        <div
+          class="pcard-tags"
+        >
+          <span
+            class="tag tag-gray"
+          >
+            Ростовая кукла
+          </span>
+        </div>
+        <span
+          class="pcard-age"
+        >
+          от 
+          6 500 ₽
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+`;

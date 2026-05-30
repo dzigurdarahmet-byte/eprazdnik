@@ -7,6 +7,7 @@ const VALID = {
   NOTION_DB_PROGRAMS_ID: "36cdaa5e-0af7-80b1-af9f-e1b05497b255",
   NOTION_DB_ELEMENTS_ID: "36cdaa5e0af781e6a74af242037b1102",
   NEXT_PUBLIC_SITE_URL: "https://example.com",
+  SITE_PASSWORD: "hunter2",
 };
 
 describe("parseEnv", () => {
@@ -31,7 +32,12 @@ describe("parseEnv", () => {
       NOTION_TOKEN: "x",
       NOTION_DB_PROGRAMS_ID: VALID.NOTION_DB_PROGRAMS_ID,
       NOTION_DB_ELEMENTS_ID: VALID.NOTION_DB_ELEMENTS_ID,
+      SITE_PASSWORD: "hunter2",
     });
     expect(env.NEXT_PUBLIC_SITE_URL).toBe("http://localhost:3000");
+  });
+
+  it("throws when SITE_PASSWORD is empty", () => {
+    expect(() => parseEnv({ ...VALID, SITE_PASSWORD: "" })).toThrow(/SITE_PASSWORD/);
   });
 });
