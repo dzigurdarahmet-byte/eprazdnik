@@ -1,46 +1,45 @@
-// /program/[slug] — full program detail.
-// generateStaticParams pre-builds every slug at compile time; ISR keeps them fresh.
+// /program/[slug] — full program detail. Порт proto-notion/screen_program_detail.jsx.
+// On-demand ISR: render on first request, then cache for `revalidate` seconds.
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Cover } from "@/components/Cover";
-import { Icon } from "@/components/Icon";
-import { MediaCard } from "@/components/MediaCard";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { IconSlot } from "@/components/ui/IconSlot";
+import { Tag } from "@/components/ui/Tag";
+import { SectionLabel } from "@/components/ui/SectionLabel";
+import { PropertyRow } from "@/components/ui/PropertyRow";
+import { Calc } from "@/components/program/Calc";
+import { MediaGrid } from "@/components/program/MediaGrid";
+import { LinkOrText, hasContent } from "@/components/program/LinkOrText";
+import { tagColorFor } from "@/lib/tag-color";
+import { statusBadge } from "@/lib/status";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
-import { formatPrice } from "@/lib/format";
 import { getProgramBySlug } from "@/lib/notion/programs";
 
 export const revalidate = REVALIDATE_SECONDS;
 export const dynamicParams = true;
 
-/**
- * Pure ISR: pages render on the first request after deploy, then sit in cache
- * for `revalidate` seconds. We deliberately don't pre-render at build time —
- * with 16 programs × ~10 Notion calls each, parallel SSG workers blow past
- * the 3-req/sec Notion limit (even with the in-process throttle, separate
- * Next.js build workers don't share the chain).
- */
 export async function generateStaticParams(): Promise<Array<{ slug: string }>> {
+  // No build-time prerender: separate SSG workers don't share the Notion
+  // throttle, so we let pages build on first request (ISR) instead.
   return [];
 }
 
 type Params = { slug: string };
 
-export async function generateMetadata(
-  { params }: { params: Params },
-): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const program = await getProgramBySlug(params.slug);
   if (!program) return { title: "Программа не найдена — Е-Праздник" };
   return {
     title: `${program.title} — Е-Праздник`,
     description: program.subtitle || program.content.subtitle || program.title,
-    openGraph: {
-      title: program.title,
-      description: program.subtitle || program.content.subtitle,
-    },
   };
 }
+
+const AUDIENCE_NOTE: Record<string, string> = {
+  B2C: "детский праздник",
+  B2B: "корпоративное мероприятие",
+};
 
 export default async function ProgramPage({ params }: { params: Params }) {
   const program = await getProgramBySlug(params.slug);
@@ -48,188 +47,177 @@ export default async function ProgramPage({ params }: { params: Params }) {
 
   const { content } = program;
   const subtitle = program.subtitle || content.subtitle;
+  const badge = statusBadge(program.status);
+  const audienceNote = AUDIENCE_NOTE[program.audience];
 
   return (
-    <div className="page-enter">
-      <nav className="crumbs" aria-label="Хлебные крошки">
-        <Link href="/catalog">Каталог</Link>
-        <span className="sep">/</span>
-        <span className="cur">{program.title}</span>
-      </nav>
+    <div>
+      <div className="detail-accent" style={{ background: program.accent }} />
+      <div className="detail-wrap">
+        <Breadcrumbs
+          items={[
+            { label: "Главная", href: "/" },
+            { label: "Программы", href: "/catalog" },
+            { label: program.title },
+          ]}
+        />
 
-      <article className="prog-hero">
-        <div className="prog-hero-img">
-          <Cover kind={program.coverKind} emoji={program.coverEmoji} />
-        </div>
-        <div className="prog-hero-info">
-          <div>
-            <h1 className="prog-hero-title">{program.title}</h1>
-            {subtitle ? <div className="prog-hero-sub">{subtitle}</div> : null}
+        <div className="detail-hero">
+          <IconSlot
+            name={program.coverKind}
+            size={64}
+            accent={program.accent}
+            tint={program.tint}
+            emoji={program.coverEmoji}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="detail-eyebrow">программа{program.format ? ` · ${program.format}` : ""}</div>
+            <h1 className="detail-h1">{program.title}</h1>
+            {subtitle ? <div className="detail-sub">{subtitle}</div> : null}
           </div>
+        </div>
 
+        <div className="detail-props">
+          {program.category ? (
+            <PropertyRow icon="◇" label="Категория">
+              <Tag color="brown">{program.category}</Tag>
+            </PropertyRow>
+          ) : null}
+          {program.audience !== "OTHER" ? (
+            <PropertyRow icon="◎" label="Тип">
+              <Tag color={program.audience === "B2B" ? "blue" : "green"}>{program.audience}</Tag>
+              {audienceNote ? <span style={{ color: "var(--text-muted)" }}>{audienceNote}</span> : null}
+            </PropertyRow>
+          ) : null}
+          {badge ? (
+            <PropertyRow icon="●" label="Статус">
+              <Tag color={badge.color} dot={badge.dot}>
+                {badge.label}
+              </Tag>
+            </PropertyRow>
+          ) : null}
           {program.tags.length > 0 ? (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {program.tags.map((t) => (
-                <span key={t} className="ptag amber">{t}</span>
+            <PropertyRow icon="✦" label="Теги">
+              {program.tags.map((t, i) => (
+                <Tag key={i} color={tagColorFor(t)}>
+                  {t}
+                </Tag>
               ))}
-            </div>
+            </PropertyRow>
           ) : null}
-
-          <div className="metrics-row">
-            {program.ageRange ? (
-              <div className="metric">
-                <div className="metric-ico pink"><Icon n="baby" size={16} /></div>
-                <div>
-                  <div className="metric-label">Возраст</div>
-                  <div className="metric-value">{program.ageRange} лет</div>
-                </div>
-              </div>
-            ) : null}
-            {program.duration ? (
-              <div className="metric">
-                <div className="metric-ico amber"><Icon n="clock" size={16} /></div>
-                <div>
-                  <div className="metric-label">Длительность</div>
-                  <div className="metric-value">{program.duration}</div>
-                </div>
-              </div>
-            ) : null}
-            {program.guests ? (
-              <div className="metric">
-                <div className="metric-ico cyan"><Icon n="users" size={16} /></div>
-                <div>
-                  <div className="metric-label">Гостей</div>
-                  <div className="metric-value">{program.guests}</div>
-                </div>
-              </div>
-            ) : null}
-            {program.priceFrom !== null ? (
-              <div className="metric">
-                <div className="metric-ico purple"><Icon n="ruble" size={16} /></div>
-                <div>
-                  <div className="metric-label">Стоимость</div>
-                  <div className="metric-value">от {formatPrice(program.priceFrom)}</div>
-                </div>
-              </div>
-            ) : null}
-          </div>
+          {program.ageRange ? (
+            <PropertyRow icon="○" label="Возраст">
+              <span style={{ color: "var(--text)" }}>{program.ageRange}</span>
+            </PropertyRow>
+          ) : null}
+          {program.duration ? (
+            <PropertyRow icon="◐" label="Длительность">
+              <span style={{ color: "var(--text)" }}>{program.duration}</span>
+            </PropertyRow>
+          ) : null}
+          {program.priceFrom !== null ? (
+            <PropertyRow icon="◆" label="Цена от">
+              <span style={{ color: "var(--text)", fontWeight: 500 }}>
+                {program.priceFrom.toLocaleString("ru-RU")} ₽
+              </span>
+            </PropertyRow>
+          ) : null}
         </div>
-      </article>
 
-      <div className="prog-body">
-        <div>
-          {content.legend ? (
-            <section className="prog-section">
-              <h2><Icon n="book" size={18} /> Легенда программы</h2>
-              {content.legend.split("\n\n").map((para, i) => (
-                <p key={i}>{para}</p>
-              ))}
-            </section>
-          ) : null}
+        {content.legend ? (
+          <>
+            <SectionLabel num="01">Легенда</SectionLabel>
+            {content.legend.split("\n\n").map((para, i) => (
+              <p key={i} className="detail-text">
+                {para}
+              </p>
+            ))}
+          </>
+        ) : null}
 
-          {content.finale ? (
-            <section className="prog-section">
-              <h2><Icon n="sparkles" size={18} /> Финал</h2>
-              <p>{content.finale}</p>
-            </section>
-          ) : null}
-
-          {content.activities.length > 0 ? (
-            <section className="prog-section">
-              <h2><Icon n="compass" size={18} /> Активности</h2>
-              <div className="includes-list">
-                {content.activities.map((a, i) => (
-                  <div className="includes-item" key={i}>
-                    <div
-                      className="includes-ico"
-                      style={{ background: "linear-gradient(135deg,#a78bfa,#7c3aed)" }}
-                      aria-hidden
-                    >
-                      <Icon n="check" size={16} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div className="includes-title">{a}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {content.characters.length > 0 ? (
-            <section className="prog-section">
-              <h2><Icon n="users" size={18} /> Персонажи</h2>
-              <div className="chars-row">
-                {content.characters.map((c, i) => (
-                  <div className="char-card" key={i}>
-                    <div
-                      className="char-avatar"
-                      style={{ background: "linear-gradient(135deg,#c7d2fe,#6366f1)", display: "grid", placeItems: "center" }}
-                      aria-hidden
-                    >
-                      <span style={{ fontSize: 22 }}>{c.emoji || c.name[0]}</span>
-                    </div>
+        {content.characters.length > 0 ? (
+          <>
+            <SectionLabel num="02">Персонажи</SectionLabel>
+            <div className="chars-grid">
+              {content.characters.map((c, i) => {
+                const col = i % 3;
+                const lastRow = Math.floor(i / 3) === Math.floor((content.characters.length - 1) / 3);
+                return (
+                  <div
+                    key={i}
+                    className="char-cell"
+                    style={{
+                      borderRight: col < 2 ? "1px solid var(--border)" : "none",
+                      borderBottom: lastRow ? "none" : "1px solid var(--border)",
+                    }}
+                  >
+                    <IconSlot name="char" size={32} accent={program.accent} tint={program.tint} emoji={c.emoji} />
                     <div>
                       <div className="char-name">{c.name}</div>
                       {c.role ? <div className="char-role">{c.role}</div> : null}
                     </div>
                   </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
+                );
+              })}
+            </div>
+          </>
+        ) : null}
 
-          {content.techRequirements.length > 0 ? (
-            <section className="prog-section">
-              <h2><Icon n="wand" size={18} /> Технические требования</h2>
-              <ul style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 18 }}>
-                {content.techRequirements.map((r, i) => (
-                  <li key={i} style={{ color: "var(--text-2)", lineHeight: 1.5 }}>{r}</li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+        {content.activities.length > 0 ? (
+          <>
+            <SectionLabel num="03">Активности</SectionLabel>
+            <ol className="acts">
+              {content.activities.map((a, i) => (
+                <li key={i} className="act-row">
+                  <span className="act-num">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="act-name">{a}</span>
+                </li>
+              ))}
+            </ol>
+          </>
+        ) : null}
 
-          {content.media.length > 0 ? (
-            <section className="prog-section">
-              <h2><Icon n="image" size={18} /> Медиа</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {content.media.map((m, i) => (
-                  <MediaCard key={i} tile={m} />
-                ))}
-              </div>
-            </section>
-          ) : null}
-        </div>
+        {content.finale ? (
+          <>
+            <SectionLabel num="04">Финал</SectionLabel>
+            <p className="detail-text">{content.finale}</p>
+          </>
+        ) : null}
 
-        <aside>
-          <div className="aside-card">
-            <h4>Расчёт</h4>
-            {content.pricing.yellowNote ? (
-              <p style={{ color: "var(--text-2)", marginBottom: 14, fontSize: 13, lineHeight: 1.5 }}>
-                {content.pricing.yellowNote}
-              </p>
-            ) : null}
-            {content.pricing.constructor.title ? (
-              <div className="spec-row">
-                <span className="label">{content.pricing.constructor.title}</span>
-                {content.pricing.constructor.sub ? <b>{content.pricing.constructor.sub}</b> : null}
-              </div>
-            ) : null}
-            {content.pricing.packages.title ? (
-              <div className="spec-row">
-                <span className="label">{content.pricing.packages.title}</span>
-                {content.pricing.packages.sub ? <b>{content.pricing.packages.sub}</b> : null}
-              </div>
-            ) : null}
-            {program.priceFrom !== null ? (
-              <div className="spec-row">
-                <span className="label">Цена от</span>
-                <b>{formatPrice(program.priceFrom)}</b>
-              </div>
-            ) : null}
-          </div>
-        </aside>
+        <SectionLabel num="05">Расчёт и расходники</SectionLabel>
+        <Calc title={program.title} pricing={content.pricing} priceFrom={program.priceFrom} />
+
+        {content.media.length > 0 ? (
+          <>
+            <SectionLabel num="06">Медиа и материалы</SectionLabel>
+            <MediaGrid tiles={content.media} />
+          </>
+        ) : null}
+
+        {content.techRequirements.length > 0 ? (
+          <>
+            <SectionLabel num="07">Технический блок</SectionLabel>
+            <ul className="tech-list">
+              {content.techRequirements.map((r, i) => (
+                <li key={i}>{r}</li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+
+        {hasContent(content.scripts) ? (
+          <>
+            <SectionLabel num="08">Скрипты продаж</SectionLabel>
+            <LinkOrText section={content.scripts} />
+          </>
+        ) : null}
+
+        {hasContent(content.cases) ? (
+          <>
+            <SectionLabel num="09">Кейсы</SectionLabel>
+            <LinkOrText section={content.cases} />
+          </>
+        ) : null}
       </div>
     </div>
   );

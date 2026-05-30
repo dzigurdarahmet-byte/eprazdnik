@@ -1,82 +1,116 @@
-// Home page. Server component. Pulls the full program list so the hero counter
-// is live ("N программ", AC §7) and the "Recent" grid shows real cards.
+// Главная — порт proto-notion/screen_home.jsx. Server component, ISR (revalidate
+// из layout/constants). Counts живые из Notion (§4.4).
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Hero } from "@/components/Hero";
-import { Icon } from "@/components/Icon";
-import { ProgramCard } from "@/components/ProgramCard";
-import { REVALIDATE_SECONDS } from "@/lib/constants";
+import { IconSlot } from "@/components/ui/IconSlot";
+import { Tag } from "@/components/ui/Tag";
+import { statusBadge } from "@/lib/status";
 import { listPrograms } from "@/lib/notion/programs";
+import { listElements } from "@/lib/notion/elements";
+import { REVALIDATE_SECONDS } from "@/lib/constants";
 
 export const revalidate = REVALIDATE_SECONDS;
-// Notion API rate-limits force on-demand rendering; ISR provides the
-// fast-path cache after first hit (see ADR in program/[slug]/page.tsx).
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Е-Праздник — каталог детских и корпоративных программ",
-  description:
-    "Сюжетные шоу, квесты, мастер-классы и крио-шоу. Подробное описание каждой программы и расчёт стоимости.",
+  title: "Е-Праздник — каталог программ",
+  description: "Внутренний справочник программ, шоу и мастер-классов для менеджеров.",
 };
 
-type QuickAction = {
-  href: string;
-  ico: "library" | "compass" | "send" | "flame";
-  cls: "qa--purple" | "qa--pink" | "qa--amber" | "qa--cyan";
-  title: string;
-  meta: string;
-};
-
-const QA: QuickAction[] = [
-  { href: "/catalog", ico: "library", cls: "qa--pink", title: "Каталог программ", meta: "Полный список" },
-  { href: "/catalog", ico: "compass", cls: "qa--purple", title: "Подбор по формату", meta: "Шоу · Квест · МК" },
-  { href: "/catalog", ico: "send", cls: "qa--amber", title: "Отправить клиенту", meta: "Готовые подборки" },
-  { href: "/catalog", ico: "flame", cls: "qa--cyan", title: "Популярное", meta: "Хиты сезона" },
-];
+function isB2B(tags: string[], audience: string): boolean {
+  return audience === "B2B" || tags.some((t) => /b2b/i.test(t));
+}
 
 export default async function HomePage() {
-  const programs = await listPrograms();
-  const recent = programs.slice(0, 4);
+  const [programs, elements] = await Promise.all([listPrograms(), listElements()]);
+  const b2bCount = programs.filter((p) => isB2B(p.tags, p.audience)).length;
+  const recents = programs.slice(0, 6);
+
+  const quickCards = [
+    { href: "/catalog", icon: "catalog", count: programs.length, label: "Все программы", sub: "Каталог сюжетных программ" },
+    { href: "/elements", icon: "elements", count: elements.length, label: "Элементы и доп.услуги", sub: "Библиотека элементов" },
+    { href: "/catalog?audience=B2B", icon: "b2b", count: b2bCount, label: "B2B-каталог", sub: "Корпоративные мероприятия" },
+  ];
 
   return (
-    <div className="page-enter">
-      <Hero
-        title="Е-Праздник"
-        subtitle="Каталог авторских праздничных программ — сюжетные шоу, квесты, мастер-классы."
-        totalPrograms={programs.length}
-      />
+    <div className="home-wrap">
+      <div className="eyebrow">справочник · каталог услуг</div>
+      <h1 className="home-h1">
+        Е-Праздник.
+        <br />
+        <span className="muted">Каталог программ.</span>
+      </h1>
+      <p className="home-lead">
+        Единая база программ, шоу и мастер-классов. Менеджер собирает заказ за&nbsp;30 секунд: открыл
+        карточку — взял описание, медиа и&nbsp;цену из&nbsp;расчёта.
+      </p>
 
-      <div className="qa-grid">
-        {QA.map((q) => (
-          <Link key={q.title} href={q.href} className={"qa " + q.cls}>
-            <div className="qa-arrow"><Icon n="arrow-up-right" size={18} /></div>
-            <div className="qa-ico"><Icon n={q.ico} size={20} /></div>
+      <div className="qa3-grid">
+        {quickCards.map((c) => (
+          <Link key={c.label} href={c.href} className="qa3">
+            <div className="qa3-top">
+              <IconSlot name={c.icon} size={32} accent="var(--text-muted)" tint="var(--bg-soft)" />
+              <span className="qa3-count">{c.count}</span>
+            </div>
             <div>
-              <div className="qa-title">{q.title}</div>
-              <div className="qa-meta">{q.meta}</div>
+              <div className="qa3-label">{c.label}</div>
+              <div className="qa3-sub">{c.sub}</div>
             </div>
           </Link>
         ))}
       </div>
 
-      {recent.length > 0 ? (
+      {recents.length > 0 ? (
         <>
-          <div className="sec-head">
-            <div className="sec-title">
-              <span className="ico"><Icon n="sparkles" size={18} /></span>
-              Свежие программы
-            </div>
-            <Link className="sec-link" href="/catalog">
-              Весь каталог <Icon n="arrow-right" size={13} />
+          <div className="recent-head">
+            <h2>Недавно открытые</h2>
+            <Link className="recent-link" href="/catalog">
+              Все программы →
             </Link>
           </div>
-          <div className="cards-grid">
-            {recent.map((p) => (
-              <ProgramCard key={p.id} p={p} />
-            ))}
+          <div className="recent-grid">
+            {recents.map((p, i) => {
+              const col = i % 3;
+              const row = Math.floor(i / 3);
+              const borderRight = col < 2 ? "1px solid var(--border)" : "none";
+              const borderBottom =
+                row < Math.floor((recents.length - 1) / 3) ? "1px solid var(--border)" : "none";
+              const badge = statusBadge(p.status);
+              const meta = [p.ageRange, p.duration].filter(Boolean).join(" · ");
+              return (
+                <Link key={p.id} href={`/program/${p.slug}`} className="recent-row" style={{ borderRight, borderBottom }}>
+                  <span className="recent-accent" style={{ background: p.accent }} />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span className="recent-title" style={{ display: "block" }}>{p.title}</span>
+                    {meta ? <span className="recent-sub" style={{ display: "block" }}>{meta}</span> : null}
+                  </span>
+                  {badge ? <Tag color={badge.color}>{badge.dot}</Tag> : null}
+                </Link>
+              );
+            })}
           </div>
         </>
       ) : null}
+
+      <div className="duo">
+        <div className="duo-grid">
+          <div>
+            <div className="duo-eyebrow">витрина</div>
+            <div className="duo-h">Notion — для навигации</div>
+            <p className="duo-p">
+              Карточки программ с&nbsp;легендой, персонажами, медиа и&nbsp;статусом готовности. Поиск,
+              фильтры, тег-система.
+            </p>
+          </div>
+          <div>
+            <div className="duo-eyebrow">движок</div>
+            <div className="duo-h">Google&nbsp;Sheets — для цен</div>
+            <p className="duo-p">
+              Конструктор стоимости, маржа и&nbsp;расходники остаются в&nbsp;таблицах и&nbsp;открываются
+              из&nbsp;карточки по&nbsp;ссылке.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,32 +1,44 @@
-// /catalog — server-rendered listing of every program in Notion (templates
-// already filtered out by listPrograms). The client-side filter UI is
-// delegated to CatalogContent.
+// /catalog — порт proto-notion/screen_programs.jsx. ISR; фильтры/поиск клиентские.
 import type { Metadata } from "next";
-import { CatalogContent } from "@/components/CatalogContent";
-import { Hero } from "@/components/Hero";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { CatalogView } from "@/components/catalog/CatalogView";
 import { listPrograms } from "@/lib/notion/programs";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
+import type { FilterState } from "@/lib/catalog-filter";
 
 export const revalidate = REVALIDATE_SECONDS;
-// Don't prerender at build time — Notion API rate limits make build-time
-// data fetching brittle. ISR keeps the first user request warm for 60s.
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Каталог программ — Е-Праздник",
-  description: "Все программы агентства Е-Праздник: сюжетные шоу, квесты, мастер-классы.",
+  title: "Программы — Е-Праздник",
+  description: "Каталог программ агентства: сюжетные шоу, квесты, мастер-классы.",
 };
 
-export default async function CatalogPage() {
+function pick(v: string | string[] | undefined): string {
+  return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
+}
+
+export default async function CatalogPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const programs = await listPrograms();
+  const initial: Partial<FilterState> = {
+    format: pick(searchParams?.format),
+    category: pick(searchParams?.category ?? searchParams?.cat),
+    audience: pick(searchParams?.audience),
+  };
+
   return (
-    <div className="page-enter">
-      <Hero
-        title="Каталог услуг"
-        subtitle={`${programs.length} программ и шоу для любого формата мероприятия.`}
-        totalPrograms={programs.length}
-      />
-      <CatalogContent programs={programs} />
+    <div className="catalog-wrap">
+      <Breadcrumbs items={[{ label: "Главная", href: "/" }, { label: "Программы" }]} />
+      <div className="cat-eyebrow">каталог · gallery view</div>
+      <h1 className="catalog-h1">Программы</h1>
+      <div className="catalog-desc">
+        {programs.length} программ и услуг. Фильтруйте по формату, категории, статусу и аудитории —
+        или ищите по названию.
+      </div>
+      <CatalogView programs={programs} initial={initial} />
     </div>
   );
 }
