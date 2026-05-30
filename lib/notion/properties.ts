@@ -49,6 +49,26 @@ export function readNumberProp(page: PageObjectResponse, candidates: readonly st
   return null;
 }
 
+export function readRelation(page: PageObjectResponse, candidates: readonly string[]): string[] {
+  const p = pickProp(page.properties, candidates);
+  if (p && p.type === "relation") return p.relation.map((r) => r.id);
+  return [];
+}
+
+/** Read a URL from either a `url` property or the first link inside a rich_text property. */
+export function readUrlProp(page: PageObjectResponse, candidates: readonly string[]): string {
+  const p = pickProp(page.properties, candidates);
+  if (!p) return "";
+  if (p.type === "url") return p.url ?? "";
+  if (p.type === "rich_text") {
+    for (const t of p.rich_text) {
+      if (t.href) return t.href;
+      if (t.type === "text" && t.text.link?.url) return t.text.link.url;
+    }
+  }
+  return "";
+}
+
 export function readPageEmoji(page: PageObjectResponse): string {
   if (page.icon && page.icon.type === "emoji") return page.icon.emoji;
   return "";

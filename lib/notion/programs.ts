@@ -16,9 +16,10 @@ type QueryResultItem =
   | PartialDatabaseObjectResponse;
 
 import { notion, DB_PROGRAMS } from "@/lib/notion/client";
-import { TEMPLATE_TITLE_PREFIX } from "@/lib/constants";
+import { isHiddenTitle } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { slugify } from "@/lib/slugify";
+import { deriveAccent } from "@/lib/accent";
 import {
   NotionError,
   NotionRateLimitError,
@@ -34,9 +35,21 @@ import {
   readMultiSelect,
   readNumberProp,
   readPageEmoji,
+  readRelation,
   readRichTextProp,
   readSelect,
+  readUrlProp,
 } from "@/lib/notion/properties";
+
+// Google Sheets конструктора — пока заводится руководителем, читаем толерантно (§4.3).
+const SHEET_URL_PROPS = ["Google Sheets", "Конструктор", "Расчёт", "Ссылка на расчёт"];
+
+// Verified live-DB relation property name (§ decision 4).
+const REL_ELEMENTS = [
+  "Related to 🧩 Элементы авторских программ (Используется в программах)",
+  "Используется в программах",
+  "Элементы",
+];
 
 // Cover kind is derived from the title/tags so the visual matches the proto
 // without requiring a new Notion property the client must maintain.
@@ -63,16 +76,29 @@ function isFullPage(p: QueryResultItem): p is PageObjectResponse {
   return p.object === "page" && "properties" in p;
 }
 
+// Возраст / Размер группы verified as multi_select; read tolerantly as either
+// multi_select or rich_text so older rows still parse.
+function readMultiOrText(page: PageObjectResponse, candidates: readonly string[]): string[] {
+  const multi = readMultiSelect(page, candidates);
+  if (multi.length > 0) return multi;
+  const text = readRichTextProp(page, candidates);
+  return text ? [text] : [];
+}
+
 export function pageToSummary(page: PageObjectResponse): ProgramSummary {
   const title = findTitle(page);
   const subtitle = readRichTextProp(page, ["Подзаголовок", "Sub", "Subtitle"]);
   const tags = readMultiSelect(page, ["Теги", "Tags"]);
   const category = readSelect(page, ["Категория", "Category", "Тип"]);
+  const format = readSelect(page, ["Формат", "Format"]);
+  const groupSize = readMultiOrText(page, ["Размер группы", "Гости", "Guests"]);
+  const status = readSelect(page, ["Статус", "Status"]);
+  const ageValues = readMultiOrText(page, ["Возраст", "Age"]);
   const audienceRaw = readSelect(page, ["B2B/B2C", "Аудитория", "Тип клиента"]);
-  const ageRange = readRichTextProp(page, ["Возраст", "Age"]);
+  const audienceTag = tags.find((t) => /b2[bc]/i.test(t)) ?? "";
   const duration = readRichTextProp(page, ["Длительность", "Duration"]);
-  const guests = readRichTextProp(page, ["Гости", "Guests"]);
   const priceFrom = readNumberProp(page, ["Цена от", "Price", "Стоимость"]);
+  const { accent, tint } = deriveAccent(title);
 
   return {
     id: page.id,
@@ -81,13 +107,19 @@ export function pageToSummary(page: PageObjectResponse): ProgramSummary {
     subtitle,
     coverEmoji: readPageEmoji(page),
     coverKind: deriveCoverKind(title, tags),
+    accent,
+    tint,
     tags,
     category,
-    audience: normalizeAudience(audienceRaw),
-    ageRange,
+    format,
+    groupSize,
+    status,
+    audience: normalizeAudience(audienceRaw || audienceTag),
+    ageRange: ageValues.join(", "),
     duration,
-    guests,
+    guests: groupSize.join(", "),
     priceFrom,
+    relatedElementIds: readRelation(page, REL_ELEMENTS),
   };
 }
 
@@ -157,7 +189,7 @@ async function _listPrograms(): Promise<ProgramSummary[]> {
 
     const summaries = results
       .map(pageToSummary)
-      .filter((s) => s.title.length > 0 && !s.title.startsWith(TEMPLATE_TITLE_PREFIX))
+      .filter((s) => !isHiddenTitle(s.title))
       .sort((a, b) => a.title.localeCompare(b.title, "ru"));
 
     logger.info({ count: summaries.length, durationMs: Date.now() - start }, "programs.list.ok");
@@ -180,6 +212,11 @@ async function _getProgram(pageId: string): Promise<ProgramDetail> {
     const summary = pageToSummary(page);
     const blocks = await fetchBlockTree(page.id);
     const content = parseProgram(blocks);
+    // Prefer a sheet link found in the body; fall back to a page-level URL property.
+    if (!content.pricing.sheetUrl) {
+      const propUrl = readUrlProp(page, SHEET_URL_PROPS);
+      if (propUrl) content.pricing.sheetUrl = propUrl;
+    }
     logger.info({ pageId, durationMs: Date.now() - start }, "programs.get.ok");
     return { ...summary, content };
   } catch (err) {

@@ -1,0 +1,74 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ProgramCard > matches snapshot 1`] = `
+<div>
+  <a
+    class="pcard"
+    href="/program/holodnoe-serdce"
+  >
+    <div
+      class="pcard-accent"
+      style="background: rgb(61, 111, 168);"
+    />
+    <div
+      class="pcard-body"
+    >
+      <div
+        class="pcard-head"
+      >
+        <span
+          aria-hidden="true"
+          style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: rgb(234, 241, 250); border-radius: 5px; flex-shrink: 0; font-size: 18px; line-height: 1;"
+        >
+          ❄️
+        </span>
+        <span
+          class="tag tag-green"
+        >
+          <span
+            class="tag-dot"
+          >
+            🟢
+          </span>
+          Готово к продаже
+        </span>
+      </div>
+      <div>
+        <div
+          class="pcard-title"
+        >
+          Холодное Сердце
+        </div>
+        <div
+          class="pcard-sub"
+        >
+          Тайна кристаллов Эренделла
+        </div>
+      </div>
+      <div
+        class="pcard-foot"
+      >
+        <div
+          class="pcard-tags"
+        >
+          <span
+            class="tag tag-purple"
+          >
+            сюжетная
+          </span>
+          <span
+            class="tag tag-purple"
+          >
+            премиум
+          </span>
+        </div>
+        <span
+          class="pcard-age"
+        >
+          5–12
+        </span>
+      </div>
+    </div>
+  </a>
+</div>
+`;

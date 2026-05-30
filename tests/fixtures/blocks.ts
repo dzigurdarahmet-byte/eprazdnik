@@ -90,6 +90,21 @@ export const callout = (
   } as any;
 };
 
+export const bookmark = (url: string, caption = ""): BlockTree => ({
+  ...baseMeta(),
+  type: "bookmark",
+  bookmark: { url, caption: caption ? [rt(caption)] : [] },
+} as any);
+
+export const paragraphLink = (text: string, url: string): BlockTree => ({
+  ...baseMeta(),
+  type: "paragraph",
+  paragraph: {
+    rich_text: [rt(text, { href: url, text: { content: text, link: { url } } as any })],
+    color: "default",
+  },
+} as any);
+
 export const column = (children: BlockTree[]): BlockTree => ({
   ...baseMeta(),
   type: "column",

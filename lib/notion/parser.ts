@@ -1,11 +1,14 @@
 // Notion blocks → ProgramContent. Pure function: no network calls, no throws.
 // Missing sections collapse to empty defaults and emit logger.warn for triage.
 import type {
+  BookmarkBlockObjectResponse,
   BulletedListItemBlockObjectResponse,
   CalloutBlockObjectResponse,
+  EmbedBlockObjectResponse,
   Heading1BlockObjectResponse,
   Heading2BlockObjectResponse,
   Heading3BlockObjectResponse,
+  LinkPreviewBlockObjectResponse,
   NumberedListItemBlockObjectResponse,
   ParagraphBlockObjectResponse,
 } from "@notionhq/client/build/src/api-endpoints";
@@ -21,6 +24,8 @@ import type { NotionBlock, NotionRichText } from "@/types/notion";
 import { isFullBlock } from "@/types/notion";
 import type {
   Character,
+  ContentLink,
+  LinkOrTextSection,
   MediaTile,
   PricingBlock,
   ProgramContent,
@@ -43,6 +48,33 @@ function firstUrlFromRichText(rt: NotionRichText[] | undefined): string {
     if (t.type === "text" && t.text.link?.url) return t.text.link.url;
   }
   return "";
+}
+
+/** Extract a URL carried by a block: bookmark / embed / link_preview / callout / paragraph link. */
+function blockUrl(b: NotionBlock): string {
+  if (b.type === "bookmark") return (b as BookmarkBlockObjectResponse).bookmark.url ?? "";
+  if (b.type === "embed") return (b as EmbedBlockObjectResponse).embed.url ?? "";
+  if (b.type === "link_preview") return (b as LinkPreviewBlockObjectResponse).link_preview.url ?? "";
+  if (b.type === "callout") return firstUrlFromRichText((b as CalloutBlockObjectResponse).callout.rich_text);
+  if (b.type === "paragraph") return firstUrlFromRichText((b as ParagraphBlockObjectResponse).paragraph.rich_text);
+  if (b.type === "bulleted_list_item")
+    return firstUrlFromRichText((b as BulletedListItemBlockObjectResponse).bulleted_list_item.rich_text);
+  return "";
+}
+
+/** Plain text of a paragraph / list / callout block, when present. */
+function blockText(b: NotionBlock): string {
+  if (b.type === "paragraph") return richTextToString((b as ParagraphBlockObjectResponse).paragraph.rich_text);
+  if (b.type === "callout") return richTextToString((b as CalloutBlockObjectResponse).callout.rich_text);
+  if (b.type === "bulleted_list_item")
+    return richTextToString((b as BulletedListItemBlockObjectResponse).bulleted_list_item.rich_text);
+  if (b.type === "numbered_list_item")
+    return richTextToString((b as NumberedListItemBlockObjectResponse).numbered_list_item.rich_text);
+  return "";
+}
+
+function isSheetUrl(url: string): boolean {
+  return /docs\.google\.com|spreadsheets|sheets/i.test(url);
 }
 
 /** Depth-first flatten, including children of column_list / column / toggle / quote / etc. */
@@ -209,13 +241,24 @@ function calloutEmoji(b: NotionBlock): string {
 
 const DEFAULT_PRICING: PricingBlock = {
   yellowNote: "",
+  sheetUrl: "",
   constructor: { title: "", sub: "" },
   packages: { title: "", sub: "" },
 };
 
 export function parsePricing(blocks: NotionBlock[]): PricingBlock {
+  // Google Sheets link can live as a bookmark/embed/link anywhere in the section.
+  let sheetUrl = "";
+  for (const b of blocks) {
+    const url = blockUrl(b);
+    if (url && isSheetUrl(url)) {
+      sheetUrl = url;
+      break;
+    }
+  }
+
   const callouts = blocks.filter((b): b is NotionBlock & { type: "callout" } => b.type === "callout");
-  if (callouts.length === 0) return DEFAULT_PRICING;
+  if (callouts.length === 0) return { ...DEFAULT_PRICING, sheetUrl };
 
   // Yellow note: first callout with a yellow-ish background color.
   let yellowNote = "";
@@ -248,7 +291,33 @@ export function parsePricing(blocks: NotionBlock[]): PricingBlock {
     }
   }
 
-  return { yellowNote, constructor: constructorBox, packages: packagesBox };
+  return { yellowNote, sheetUrl, constructor: constructorBox, packages: packagesBox };
+}
+
+const EMPTY_SECTION: LinkOrTextSection = { links: [], paragraphs: [] };
+
+/**
+ * Скрипты продаж / Кейсы (§4.6a): a section may be authored as link tiles
+ * (bookmark / Я.Диск / Google Doc) OR as plain text. Collect both.
+ */
+export function parseLinkOrText(blocks: NotionBlock[]): LinkOrTextSection {
+  const links: ContentLink[] = [];
+  const paragraphs: string[] = [];
+  for (const b of blocks) {
+    const url = blockUrl(b);
+    const text = blockText(b).trim();
+    if (url) {
+      const [title, ...metaRest] = text.split(/\s*·\s*/);
+      links.push({
+        title: (title ?? "").trim() || text || url,
+        url,
+        meta: metaRest.join(" · ").trim(),
+      });
+    } else if (text.length > 0) {
+      paragraphs.push(text);
+    }
+  }
+  return { links, paragraphs };
 }
 
 export function parseMedia(blocks: NotionBlock[]): MediaTile[] {
@@ -283,6 +352,8 @@ const EMPTY_CONTENT: ProgramContent = {
   techRequirements: [],
   pricing: DEFAULT_PRICING,
   media: [],
+  scripts: EMPTY_SECTION,
+  cases: EMPTY_SECTION,
 };
 
 export function parseProgram(blocks: BlockTree[]): ProgramContent {
@@ -305,6 +376,8 @@ export function parseProgram(blocks: BlockTree[]): ProgramContent {
   const techBlocks = sections.get(SECTION_IDS.TECH_REQUIREMENTS) ?? [];
   const pricingBlocks = sections.get(SECTION_IDS.PRICING) ?? [];
   const mediaBlocks = sections.get(SECTION_IDS.MEDIA) ?? [];
+  const scriptsBlocks = sections.get(SECTION_IDS.SCRIPTS) ?? [];
+  const casesBlocks = sections.get(SECTION_IDS.CASES) ?? [];
 
   // Single warn line listing what's missing — quieter at build time than one
   // line per section, but the signal is preserved for triage.
@@ -328,5 +401,7 @@ export function parseProgram(blocks: BlockTree[]): ProgramContent {
     techRequirements: collectListItems(techBlocks, "bulleted_list_item"),
     pricing: parsePricing(pricingBlocks),
     media: parseMedia(mediaBlocks),
+    scripts: parseLinkOrText(scriptsBlocks),
+    cases: parseLinkOrText(casesBlocks),
   };
 }

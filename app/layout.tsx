@@ -1,28 +1,36 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope } from "next/font/google";
-import { Sidebar } from "@/components/Sidebar";
+import { Inter, JetBrains_Mono, Fraunces } from "next/font/google";
 import { env } from "@/lib/env";
 import "./globals.css";
 
-const manrope = Manrope({
+const inter = Inter({
   subsets: ["latin", "cyrillic"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
-  variable: "--font-manrope",
+  variable: "--font-inter",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+  variable: "--font-mono",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  display: "swap",
+  variable: "--font-fraunces",
 });
 
 export const metadata: Metadata = {
-  title: "Е-Праздник — Каталог детских праздников",
+  title: "Е-Праздник — каталог программ",
   description:
-    "Сюжетные программы, шоу и квесты для детских и корпоративных праздников. Подробное описание каждой программы, расчёт стоимости, медиа.",
+    "Внутренний справочник программ, шоу и мастер-классов агентства «Е-Праздник» для менеджеров.",
   metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
-  openGraph: {
-    title: "Е-Праздник",
-    description: "Каталог детских праздничных программ",
-    locale: "ru_RU",
-    type: "website",
-  },
-  robots: { index: true, follow: true },
+  // Внутренний справочник за паролем — не индексируем (§4.10).
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
@@ -31,19 +39,10 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const fontVars = `${inter.variable} ${jetbrainsMono.variable} ${fraunces.variable}`;
   return (
-    <html lang="ru" className={manrope.variable}>
-      <body style={{ fontFamily: "var(--font-manrope), system-ui, sans-serif" }}>
-        <a href="#main" className="skip-link">
-          Перейти к содержимому
-        </a>
-        <div className="app">
-          <Sidebar />
-          <main id="main" className="main" style={{ minHeight: "100vh" }}>
-            {children}
-          </main>
-        </div>
-      </body>
+    <html lang="ru" className={fontVars}>
+      <body>{children}</body>
     </html>
   );
 }

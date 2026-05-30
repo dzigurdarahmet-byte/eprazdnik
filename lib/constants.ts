@@ -3,6 +3,18 @@
 // Pages with a title starting with this marker are excluded from the public catalog.
 export const TEMPLATE_TITLE_PREFIX = "[ШАБЛОН]";
 
+// Preview/test rows (e.g. "🧪 Индейский квест — превью шапки") must never leak
+// into the catalog. Code-level filter is belt-and-suspenders next to the manual
+// Notion archival (§4.11).
+export const TEST_TITLE_PREFIX = "🧪";
+
+/** True if a title is a template or test/preview row that must stay hidden. */
+export function isHiddenTitle(title: string): boolean {
+  const t = title.trim();
+  if (t.length === 0) return true;
+  return t.startsWith(TEMPLATE_TITLE_PREFIX) || t.startsWith(TEST_TITLE_PREFIX);
+}
+
 // ISR revalidation window for Notion-backed pages. 60s is the project default.
 export const REVALIDATE_SECONDS = 60;
 
@@ -21,6 +33,8 @@ export const SECTION_IDS = {
   TECH_REQUIREMENTS: "TECH_REQUIREMENTS",
   PRICING: "PRICING",
   MEDIA: "MEDIA",
+  SCRIPTS: "SCRIPTS",
+  CASES: "CASES",
 } as const;
 
 export type SectionId = (typeof SECTION_IDS)[keyof typeof SECTION_IDS];
@@ -35,6 +49,8 @@ export const SECTION_MATCHERS: ReadonlyArray<{ id: SectionId; pattern: RegExp }>
   { id: "CHARACTERS", pattern: /персонаж|геро[йи]/i },
   { id: "PRICING", pattern: /расч[её]т|цен|стоимост/i },
   { id: "MEDIA", pattern: /медиа|видео|фото|материал/i },
+  { id: "SCRIPTS", pattern: /скрипт/i },
+  { id: "CASES", pattern: /кейс/i },
 ];
 
 // Sections that must NEVER be exposed publicly even if their headings match.
