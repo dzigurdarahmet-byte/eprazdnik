@@ -28,7 +28,9 @@ export function ElementCard({ e }: { e: ElementSummary }) {
           <div className="pcard-tags">
             {e.category ? <Tag color={tagColorFor(e.category)}>{e.category}</Tag> : null}
           </div>
-          {e.priceFrom !== null ? <span className="pcard-age">от {formatPrice(e.priceFrom)}</span> : null}
+          <span className="pcard-age">
+            {e.priceFrom !== null ? `от ${formatPrice(e.priceFrom)}` : "по запросу"}
+          </span>
         </div>
       </div>
     </div>
