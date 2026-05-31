@@ -25,8 +25,25 @@ function isRateLimit(err: unknown): { retryAfterMs: number } | null {
 }
 
 /**
+ * Transient, retryable failures that aren't rate limits: request timeouts and
+ * 5xx/service-unavailable. These spike during build-time prerender of many
+ * pages and shouldn't fail the whole export — retry with backoff instead.
+ */
+function isTransient(err: unknown): boolean {
+  const e = err as { code?: string; status?: number; name?: string; message?: string };
+  if (e.status === 502 || e.status === 503 || e.status === 504) return true;
+  const code = e.code ?? "";
+  if (code === "notionhq_client_request_timeout" || code === "service_unavailable" || code === "internal_server_error") {
+    return true;
+  }
+  if (e.name === "RequestTimeoutError") return true;
+  return typeof e.message === "string" && /timed out|timeout|ECONNRESET|ETIMEDOUT|socket hang up/i.test(e.message);
+}
+
+/**
  * Queues `fn` so it runs after a minimum interval since the last call, and
- * retries with exponential backoff on rate-limit responses.
+ * retries with exponential backoff on rate-limit responses and transient
+ * timeouts / 5xx.
  */
 export function throttle<T>(fn: () => Promise<T>): Promise<T> {
   const run = async (): Promise<T> => {
@@ -37,8 +54,10 @@ export function throttle<T>(fn: () => Promise<T>): Promise<T> {
         return await fn();
       } catch (err) {
         const rl = isRateLimit(err);
-        if (!rl || attempt >= MAX_RETRIES) throw err;
-        const backoff = rl.retryAfterMs * Math.pow(2, attempt);
+        const transient = !rl && isTransient(err);
+        if ((!rl && !transient) || attempt >= MAX_RETRIES) throw err;
+        const baseMs = rl ? rl.retryAfterMs : 700;
+        const backoff = baseMs * Math.pow(2, attempt);
         await delay(backoff);
         attempt++;
       }

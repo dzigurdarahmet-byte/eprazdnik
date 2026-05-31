@@ -74,6 +74,23 @@ export function readPageEmoji(page: PageObjectResponse): string {
   return "";
 }
 
+/** Page cover image URL (external or uploaded file), "" if none. */
+export function readPageCover(page: PageObjectResponse): string {
+  const cover = page.cover;
+  if (!cover) return "";
+  if (cover.type === "external") return cover.external.url;
+  if (cover.type === "file") return cover.file.url;
+  return "";
+}
+
+/**
+ * Cover image for a card: prefer a URL/Фото property, then the page cover.
+ * Tolerant — returns "" when nothing is set.
+ */
+export function readCoverImage(page: PageObjectResponse, candidates: readonly string[]): string {
+  return readUrlProp(page, candidates) || readPageCover(page);
+}
+
 /**
  * Map an audience string from Notion ("B2C", "B2B", "Корпоративный", …)
  * to the narrowed union used in the UI.

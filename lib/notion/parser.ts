@@ -8,6 +8,7 @@ import type {
   Heading1BlockObjectResponse,
   Heading2BlockObjectResponse,
   Heading3BlockObjectResponse,
+  ImageBlockObjectResponse,
   LinkPreviewBlockObjectResponse,
   NumberedListItemBlockObjectResponse,
   ParagraphBlockObjectResponse,
@@ -30,6 +31,7 @@ import type {
   PricingBlock,
   ProgramContent,
 } from "@/types/program";
+import type { ElementContent } from "@/types/element";
 
 /** A Notion block enriched with its (already-fetched) children. */
 export type BlockTree = NotionBlock & { children?: BlockTree[] };
@@ -406,5 +408,47 @@ export function parseProgram(blocks: BlockTree[]): ProgramContent {
     creative: parseLinkOrText(creativeBlocks),
     scripts: parseLinkOrText(scriptsBlocks),
     cases: parseLinkOrText(casesBlocks),
+  };
+}
+
+// ---------------- Element body parser (v4) ----------------
+
+function imageUrl(b: NotionBlock): string {
+  if (b.type !== "image") return "";
+  const img = (b as ImageBlockObjectResponse).image;
+  if (img.type === "external") return img.external.url;
+  if (img.type === "file") return img.file.url;
+  return "";
+}
+
+/**
+ * Parse an element page body: description paragraphs, optional tech-requirements
+ * section, and the first inline image (fallback to the page cover at call site).
+ * Tolerant — empty blocks yield empty content.
+ */
+export function parseElement(blocks: BlockTree[]): ElementContent {
+  const valid = blocks.filter((b): b is BlockTree => isFullBlock(b));
+  const flat = flattenBlocks(valid);
+  const sections = splitBySectionHeaders(flat);
+  const techBlocks = sections.get(SECTION_IDS.TECH_REQUIREMENTS) ?? [];
+  const techSet = new Set<NotionBlock>(techBlocks);
+
+  const description: string[] = [];
+  let photo = "";
+  for (const b of flat) {
+    if (!photo) {
+      const u = imageUrl(b);
+      if (u) photo = u;
+    }
+    if (b.type === "paragraph" && !techSet.has(b)) {
+      const text = richTextToString((b as ParagraphBlockObjectResponse).paragraph.rich_text);
+      if (text.trim().length > 0) description.push(text);
+    }
+  }
+
+  return {
+    description,
+    techRequirements: collectListItems(techBlocks, "bulleted_list_item"),
+    photo,
   };
 }

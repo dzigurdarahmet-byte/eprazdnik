@@ -34,12 +34,16 @@ import {
   normalizeAudience,
   readMultiSelect,
   readNumberProp,
+  readCoverImage,
   readPageEmoji,
   readRelation,
   readRichTextProp,
   readSelect,
   readUrlProp,
 } from "@/lib/notion/properties";
+
+// Cover image candidates (свойство → page.cover, §3 v4).
+const COVER_PROPS = ["Фото", "Обложка", "Cover", "Изображение"];
 
 // Google Sheets конструктора — пока заводится руководителем, читаем толерантно (§4.3).
 const SHEET_URL_PROPS = ["Google Sheets", "Конструктор", "Расчёт", "Ссылка на расчёт"];
@@ -107,6 +111,7 @@ export function pageToSummary(page: PageObjectResponse): ProgramSummary {
     subtitle,
     coverEmoji: readPageEmoji(page),
     coverKind: deriveCoverKind(title, tags),
+    coverImage: readCoverImage(page, COVER_PROPS),
     accent,
     tint,
     tags,
@@ -143,7 +148,7 @@ function classifyError(err: unknown): NotionError {
 }
 
 /** Fetch all child blocks under a block id, recursively. Defensive against partials. */
-async function fetchBlockTree(blockId: string): Promise<BlockTree[]> {
+export async function fetchBlockTree(blockId: string): Promise<BlockTree[]> {
   const out: BlockTree[] = [];
   let cursor: string | undefined = undefined;
   do {

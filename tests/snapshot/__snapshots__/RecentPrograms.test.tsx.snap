@@ -1,0 +1,69 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RecentPrograms > falls back to the first programs when history is empty (snapshot) 1`] = `
+<div>
+  <div
+    class="recent-grid"
+  >
+    <a
+      class="recent-row"
+      href="/program/a"
+      style="border-right: 1px solid var(--border);"
+    >
+      <span
+        class="recent-accent"
+        style="background: rgb(0, 0, 0);"
+      />
+      <span
+        style="flex: 1 1 0%; min-width: 0;"
+      >
+        <span
+          class="recent-title"
+          style="display: block;"
+        >
+          Алиса
+        </span>
+      </span>
+    </a>
+    <a
+      class="recent-row"
+      href="/program/b"
+      style="border-right: 1px solid var(--border);"
+    >
+      <span
+        class="recent-accent"
+        style="background: rgb(0, 0, 0);"
+      />
+      <span
+        style="flex: 1 1 0%; min-width: 0;"
+      >
+        <span
+          class="recent-title"
+          style="display: block;"
+        >
+          Беларусь
+        </span>
+      </span>
+    </a>
+    <a
+      class="recent-row"
+      href="/program/c"
+    >
+      <span
+        class="recent-accent"
+        style="background: rgb(0, 0, 0);"
+      />
+      <span
+        style="flex: 1 1 0%; min-width: 0;"
+      >
+        <span
+          class="recent-title"
+          style="display: block;"
+        >
+          Холодное
+        </span>
+      </span>
+    </a>
+  </div>
+</div>
+`;

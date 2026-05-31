@@ -37,10 +37,10 @@ exports[`Sidebar > matches snapshot with live counts 1`] = `
     <div
       class="sb-top"
     >
-      <a
+      <button
         class="sb-item"
-        href="/catalog"
         style="padding-left: 8px;"
+        type="button"
       >
         <span
           class="sb-item-chev"
@@ -55,7 +55,12 @@ exports[`Sidebar > matches snapshot with live counts 1`] = `
         >
           Поиск
         </span>
-      </a>
+        <span
+          class="sb-item-kbd"
+        >
+          ⌘K
+        </span>
+      </button>
       <a
         class="sb-item"
         href="/"

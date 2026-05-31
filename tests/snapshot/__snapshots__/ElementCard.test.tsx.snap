@@ -2,8 +2,9 @@
 
 exports[`ElementCard > matches snapshot 1`] = `
 <div>
-  <div
+  <a
     class="pcard"
+    href="/element/rostovoy-olaf"
   >
     <div
       class="pcard-accent"
@@ -62,6 +63,6 @@ exports[`ElementCard > matches snapshot 1`] = `
         </span>
       </div>
     </div>
-  </div>
+  </a>
 </div>
 `;

@@ -10,6 +10,7 @@ const program: ProgramSummary = {
   subtitle: "Тайна кристаллов Эренделла",
   coverEmoji: "❄️",
   coverKind: "ice",
+  coverImage: "",
   accent: "#3d6fa8",
   tint: "#eaf1fa",
   tags: ["сюжетная", "премиум"],
@@ -34,5 +35,15 @@ describe("ProgramCard", () => {
   it("links to the program detail page", () => {
     const { container } = render(<ProgramCard p={program} />);
     expect(container.querySelector("a")?.getAttribute("href")).toBe("/program/holodnoe-serdce");
+  });
+
+  it("renders a cover image when coverImage is set, else the accent strip", () => {
+    const withPhoto = render(<ProgramCard p={{ ...program, coverImage: "https://x/cover.jpg" }} />);
+    expect(withPhoto.container.querySelector(".pcard-photo")).toBeTruthy();
+    expect(withPhoto.container.querySelector("img")).toBeTruthy();
+
+    const noPhoto = render(<ProgramCard p={program} />);
+    expect(noPhoto.container.querySelector(".pcard-photo")).toBeNull();
+    expect(noPhoto.container.querySelector(".pcard-accent")).toBeTruthy();
   });
 });

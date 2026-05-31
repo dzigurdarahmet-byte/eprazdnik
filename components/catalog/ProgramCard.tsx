@@ -1,6 +1,7 @@
 // ProgramCard — port of proto-notion/screen_programs.jsx ProgramCard.
 // Wrapped in <Link> to the program detail page.
 import Link from "next/link";
+import Image from "next/image";
 import { IconSlot } from "@/components/ui/IconSlot";
 import { Tag } from "@/components/ui/Tag";
 import { tagColorFor } from "@/lib/tag-color";
@@ -11,7 +12,13 @@ export function ProgramCard({ p }: { p: ProgramSummary }) {
   const badge = statusBadge(p.status);
   return (
     <Link href={`/program/${p.slug}`} className="pcard">
-      <div className="pcard-accent" style={{ background: p.accent }} />
+      {p.coverImage ? (
+        <div className="pcard-photo">
+          <Image src={p.coverImage} alt="" fill sizes="(max-width: 900px) 50vw, 360px" style={{ objectFit: "cover" }} />
+        </div>
+      ) : (
+        <div className="pcard-accent" style={{ background: p.accent }} />
+      )}
       <div className="pcard-body">
         <div className="pcard-head">
           <IconSlot name={p.coverKind} size={36} accent={p.accent} tint={p.tint} emoji={p.coverEmoji} />

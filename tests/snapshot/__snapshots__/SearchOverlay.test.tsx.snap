@@ -1,0 +1,95 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`SearchOverlay > matches snapshot (all results, no query) 1`] = `
+<div>
+  <div
+    class="search-overlay"
+  >
+    <div
+      aria-label="Поиск"
+      aria-modal="true"
+      class="search-modal"
+      role="dialog"
+    >
+      <div
+        class="search-input-row"
+      >
+        <span
+          aria-hidden="true"
+        >
+          ⌕
+        </span>
+        <input
+          aria-label="Поиск по программам и элементам"
+          placeholder="Поиск по программам и элементам"
+          type="search"
+          value=""
+        />
+        <button
+          class="kbd"
+          type="button"
+        >
+          Esc
+        </button>
+      </div>
+      <div
+        class="search-results"
+      >
+        <button
+          class="search-result active"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+            class="search-ico"
+            style="background: rgb(0, 0, 0);"
+          />
+          <span
+            class="search-main"
+          >
+            <span
+              class="search-title"
+            >
+              Холодное Сердце
+            </span>
+          </span>
+          <span
+            class="search-kind"
+          >
+            Программа
+          </span>
+        </button>
+        <button
+          class="search-result"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+            class="search-ico"
+            style="background: rgb(0, 0, 0);"
+          />
+          <span
+            class="search-main"
+          >
+            <span
+              class="search-title"
+            >
+              Снегогенератор
+            </span>
+            <span
+              class="search-hint"
+            >
+              Спецэффект
+            </span>
+          </span>
+          <span
+            class="search-kind"
+          >
+            Элемент
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+`;

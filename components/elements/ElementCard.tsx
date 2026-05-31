@@ -1,5 +1,7 @@
-// ElementCard — read-only card for the Элементы library (§4.8). Shares the
-// ProgramCard visual language, simplified (no detail page → not a link).
+// ElementCard — read-only card for the Элементы library (§4.8). Links to the
+// element detail page (v4). Optional cover image; falls back to accent + icon.
+import Link from "next/link";
+import Image from "next/image";
 import { IconSlot } from "@/components/ui/IconSlot";
 import { Tag } from "@/components/ui/Tag";
 import { statusBadge } from "@/lib/status";
@@ -10,8 +12,14 @@ import type { ElementSummary } from "@/types/element";
 export function ElementCard({ e }: { e: ElementSummary }) {
   const badge = statusBadge(e.status);
   return (
-    <div className="pcard">
-      <div className="pcard-accent" style={{ background: e.accent }} />
+    <Link href={`/element/${e.slug}`} className="pcard">
+      {e.coverImage ? (
+        <div className="pcard-photo">
+          <Image src={e.coverImage} alt="" fill sizes="(max-width: 900px) 50vw, 360px" style={{ objectFit: "cover" }} />
+        </div>
+      ) : (
+        <div className="pcard-accent" style={{ background: e.accent }} />
+      )}
       <div className="pcard-body">
         <div className="pcard-head">
           <IconSlot name="element" size={36} accent={e.accent} tint={e.tint} />
@@ -33,6 +41,6 @@ export function ElementCard({ e }: { e: ElementSummary }) {
           </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

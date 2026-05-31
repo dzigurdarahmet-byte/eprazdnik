@@ -11,6 +11,7 @@ const element: ElementSummary = {
   status: "🟢 Доступен",
   tags: ["зима"],
   priceFrom: 6500,
+  coverImage: "",
   accent: "#3d6fa8",
   tint: "#eaf1fa",
   relatedProgramIds: [],
