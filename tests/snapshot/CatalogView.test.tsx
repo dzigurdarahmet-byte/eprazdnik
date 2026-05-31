@@ -6,7 +6,7 @@ import type { ProgramSummary } from "@/types/program";
 function prog(p: Partial<ProgramSummary>): ProgramSummary {
   return {
     id: "id", slug: "slug", title: "Программа", subtitle: "", coverEmoji: "", coverKind: "purple",
-    accent: "#000", tint: "#fff", tags: [], category: "", format: "", groupSize: [], status: "",
+    coverImage: "", accent: "#000", tint: "#fff", tags: [], category: "", format: "", groupSize: [], status: "",
     audience: "OTHER", ageRange: "", duration: "", guests: "", priceFrom: null, relatedElementIds: [],
     ...p,
   };

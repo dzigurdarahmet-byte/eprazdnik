@@ -16,6 +16,7 @@ function prog(p: Partial<ProgramSummary>): ProgramSummary {
     subtitle: "",
     coverEmoji: "",
     coverKind: "purple",
+    coverImage: "",
     accent: "#000",
     tint: "#fff",
     tags: [],

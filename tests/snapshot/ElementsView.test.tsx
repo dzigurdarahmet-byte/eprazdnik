@@ -6,7 +6,7 @@ import type { ElementSummary } from "@/types/element";
 function el(e: Partial<ElementSummary>): ElementSummary {
   return {
     id: "id", slug: "slug", title: "Элемент", category: "", status: "", tags: [],
-    priceFrom: null, accent: "#000", tint: "#fff", relatedProgramIds: [], ...e,
+    priceFrom: null, coverImage: "", accent: "#000", tint: "#fff", relatedProgramIds: [], ...e,
   };
 }
 

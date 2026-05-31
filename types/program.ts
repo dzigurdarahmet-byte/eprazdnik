@@ -7,6 +7,7 @@ export type ProgramSummary = {
   subtitle: string;            // short tagline / sub
   coverEmoji: string;          // single emoji to seed the visual cover
   coverKind: string;           // cover variant key (matches proto/covers.jsx)
+  coverImage: string;          // обложка/фото (свойство Фото → page.cover), "" если нет
   accent: string;              // solid accent color (proto palette, derived)
   tint: string;                // soft tint background paired with accent
   tags: string[];              // multi_select tags

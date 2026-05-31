@@ -15,14 +15,19 @@ import { slugify } from "@/lib/slugify";
 import { deriveAccent } from "@/lib/accent";
 import { NotionError, NotionRateLimitError } from "@/lib/notion/errors";
 import { throttle } from "@/lib/notion/throttle";
-import type { ElementSummary } from "@/types/element";
+import { fetchBlockTree, listPrograms } from "@/lib/notion/programs";
+import { parseElement } from "@/lib/notion/parser";
+import type { ElementDetail, ElementSummary, UsedInProgram } from "@/types/element";
 import {
   findTitle,
+  readCoverImage,
   readMultiSelect,
   readNumberProp,
   readRelation,
   readSelect,
 } from "@/lib/notion/properties";
+
+const COVER_PROPS = ["Фото", "Обложка", "Cover", "Изображение"];
 
 type QueryResultItem =
   | PageObjectResponse
@@ -47,6 +52,7 @@ export function elementToSummary(page: PageObjectResponse): ElementSummary {
     status: readSelect(page, ["Статус", "Status"]),
     tags: readMultiSelect(page, ["Теги", "Tags"]),
     priceFrom: readNumberProp(page, ["Цена от", "Price", "Стоимость"]),
+    coverImage: readCoverImage(page, COVER_PROPS),
     accent,
     tint,
     relatedProgramIds: readRelation(page, REL_PROGRAMS),
@@ -108,4 +114,32 @@ export const getElementsForProgram = cache(_getElementsForProgram);
 async function _getElementsForProgram(programId: string): Promise<ElementSummary[]> {
   const all = await listElements();
   return all.filter((e) => e.relatedProgramIds.includes(programId));
+}
+
+/** Full element detail: body parse + reverse relation «используется в программах» (v4). */
+export const getElementBySlug = cache(_getElementBySlug);
+async function _getElementBySlug(slug: string): Promise<ElementDetail | null> {
+  const all = await listElements();
+  const match = all.find((e) => e.slug === slug);
+  if (!match) {
+    logger.warn({ slug }, "elements.slug.not_found");
+    return null;
+  }
+  try {
+    const blocks = await fetchBlockTree(match.id);
+    const content = parseElement(blocks);
+    if (!content.photo) content.photo = match.coverImage;
+
+    const programs = await listPrograms();
+    const usedInPrograms: UsedInProgram[] = match.relatedProgramIds
+      .map((id) => programs.find((p) => p.id === id))
+      .filter((p): p is (typeof programs)[number] => Boolean(p))
+      .map((p) => ({ title: p.title, slug: p.slug, accent: p.accent }));
+
+    return { ...match, content, usedInPrograms };
+  } catch (err) {
+    const wrapped = classifyError(err);
+    logger.error({ err: wrapped.message, slug, name: wrapped.name }, "elements.get.fail");
+    throw wrapped;
+  }
 }

@@ -3,9 +3,11 @@
 import type { Metadata } from "next";
 import { Fragment, type ReactNode } from "react";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { IconSlot } from "@/components/ui/IconSlot";
+import { TrackRecent } from "@/components/program/TrackRecent";
 import { Tag } from "@/components/ui/Tag";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { PropertyRow } from "@/components/ui/PropertyRow";
@@ -17,7 +19,7 @@ import { tagColorFor } from "@/lib/tag-color";
 import { statusBadge } from "@/lib/status";
 import { formatPrice } from "@/lib/format";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
-import { getProgramBySlug } from "@/lib/notion/programs";
+import { getProgramBySlug, listPrograms } from "@/lib/notion/programs";
 import { getElementsForProgram } from "@/lib/notion/elements";
 import type { MediaTile } from "@/types/program";
 
@@ -30,9 +32,15 @@ export const revalidate = REVALIDATE_SECONDS;
 export const dynamicParams = true;
 
 export async function generateStaticParams(): Promise<Array<{ slug: string }>> {
-  // No build-time prerender: separate SSG workers don't share the Notion
-  // throttle, so we let pages build on first request (ISR) instead.
-  return [];
+  // Prebuild all program slugs so the first open after a deploy is instant.
+  // Fetches go through the shared throttle (+429 backoff); dynamicParams=true
+  // keeps any un-built page available on demand.
+  try {
+    const programs = await listPrograms();
+    return programs.map((p) => ({ slug: p.slug }));
+  } catch {
+    return [];
+  }
 }
 
 type Params = { slug: string };
@@ -179,6 +187,7 @@ export default async function ProgramPage({ params }: { params: Params }) {
 
   return (
     <div>
+      <TrackRecent slug={program.slug} />
       <div className="detail-accent" style={{ background: program.accent }} />
       <div className="detail-wrap">
         <Breadcrumbs
@@ -190,13 +199,19 @@ export default async function ProgramPage({ params }: { params: Params }) {
         />
 
         <div className="detail-hero">
-          <IconSlot
-            name={program.coverKind}
-            size={64}
-            accent={program.accent}
-            tint={program.tint}
-            emoji={program.coverEmoji}
-          />
+          {program.coverImage ? (
+            <div className="detail-hero-photo">
+              <Image src={program.coverImage} alt={program.title} fill sizes="120px" style={{ objectFit: "cover" }} />
+            </div>
+          ) : (
+            <IconSlot
+              name={program.coverKind}
+              size={64}
+              accent={program.accent}
+              tint={program.tint}
+              emoji={program.coverEmoji}
+            />
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="detail-eyebrow">программа{program.format ? ` · ${program.format}` : ""}</div>
             <h1 className="detail-h1">{program.title}</h1>
