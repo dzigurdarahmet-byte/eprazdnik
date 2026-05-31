@@ -352,6 +352,7 @@ const EMPTY_CONTENT: ProgramContent = {
   techRequirements: [],
   pricing: DEFAULT_PRICING,
   media: [],
+  creative: EMPTY_SECTION,
   scripts: EMPTY_SECTION,
   cases: EMPTY_SECTION,
 };
@@ -376,6 +377,7 @@ export function parseProgram(blocks: BlockTree[]): ProgramContent {
   const techBlocks = sections.get(SECTION_IDS.TECH_REQUIREMENTS) ?? [];
   const pricingBlocks = sections.get(SECTION_IDS.PRICING) ?? [];
   const mediaBlocks = sections.get(SECTION_IDS.MEDIA) ?? [];
+  const creativeBlocks = sections.get(SECTION_IDS.CREATIVE) ?? [];
   const scriptsBlocks = sections.get(SECTION_IDS.SCRIPTS) ?? [];
   const casesBlocks = sections.get(SECTION_IDS.CASES) ?? [];
 
@@ -401,6 +403,7 @@ export function parseProgram(blocks: BlockTree[]): ProgramContent {
     techRequirements: collectListItems(techBlocks, "bulleted_list_item"),
     pricing: parsePricing(pricingBlocks),
     media: parseMedia(mediaBlocks),
+    creative: parseLinkOrText(creativeBlocks),
     scripts: parseLinkOrText(scriptsBlocks),
     cases: parseLinkOrText(casesBlocks),
   };

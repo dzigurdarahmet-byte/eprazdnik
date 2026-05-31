@@ -12,11 +12,19 @@ import { PropertyRow } from "@/components/ui/PropertyRow";
 import { Calc } from "@/components/program/Calc";
 import { MediaGrid } from "@/components/program/MediaGrid";
 import { LinkOrText, hasContent } from "@/components/program/LinkOrText";
+import { ElementCard } from "@/components/elements/ElementCard";
 import { tagColorFor } from "@/lib/tag-color";
 import { statusBadge } from "@/lib/status";
 import { formatPrice } from "@/lib/format";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
 import { getProgramBySlug } from "@/lib/notion/programs";
+import { getElementsForProgram } from "@/lib/notion/elements";
+import type { MediaTile } from "@/types/program";
+
+const VIDEO_RE = /видео|video|тизер|teaser|reels|reel|youtu|vimeo|rutube|\.mp4/i;
+function isVideoTile(t: MediaTile): boolean {
+  return VIDEO_RE.test(`${t.title} ${t.meta} ${t.url}`);
+}
 
 export const revalidate = REVALIDATE_SECONDS;
 export const dynamicParams = true;
@@ -47,6 +55,7 @@ export default async function ProgramPage({ params }: { params: Params }) {
   const program = await getProgramBySlug(params.slug);
   if (!program) notFound();
 
+  const programElements = await getElementsForProgram(program.id);
   const { content } = program;
   const subtitle = program.subtitle || content.subtitle;
   const badge = statusBadge(program.status);
@@ -124,7 +133,18 @@ export default async function ProgramPage({ params }: { params: Params }) {
     node: <Calc title={program.title} pricing={content.pricing} priceFrom={program.priceFrom} />,
   });
   if (content.media.length > 0) {
-    sections.push({ label: "Медиа и материалы", node: <MediaGrid tiles={content.media} /> });
+    // Split into фото / видео when both are present (как в прототипе); иначе единый блок.
+    const videos = content.media.filter(isVideoTile);
+    const photos = content.media.filter((t) => !isVideoTile(t));
+    if (videos.length > 0 && photos.length > 0) {
+      sections.push({ label: "Медиа фото", node: <MediaGrid tiles={photos} /> });
+      sections.push({ label: "Медиа видео", node: <MediaGrid tiles={videos} /> });
+    } else {
+      sections.push({ label: "Медиа и материалы", node: <MediaGrid tiles={content.media} /> });
+    }
+  }
+  if (hasContent(content.creative)) {
+    sections.push({ label: "Творческий блок", node: <LinkOrText section={content.creative} /> });
   }
   if (content.techRequirements.length > 0) {
     sections.push({
@@ -135,6 +155,18 @@ export default async function ProgramPage({ params }: { params: Params }) {
             <li key={i}>{r}</li>
           ))}
         </ul>
+      ),
+    });
+  }
+  if (programElements.length > 0) {
+    sections.push({
+      label: "Элементы программы",
+      node: (
+        <div className="pcard-grid">
+          {programElements.map((e) => (
+            <ElementCard key={e.id} e={e} />
+          ))}
+        </div>
       ),
     });
   }

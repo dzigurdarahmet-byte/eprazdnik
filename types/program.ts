@@ -58,6 +58,7 @@ export type ProgramContent = {
   techRequirements: string[];
   pricing: PricingBlock;
   media: MediaTile[];
+  creative: LinkOrTextSection;
   scripts: LinkOrTextSection;
   cases: LinkOrTextSection;
 };
