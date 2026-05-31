@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Chevron } from "@/components/ui/Chevron";
+import { useSearch } from "@/components/search/SearchProvider";
 
 export type SidebarProgram = { title: string; slug: string; accent: string };
 
@@ -37,8 +38,10 @@ function SbItem({
   icon,
   label,
   count,
+  kbd,
   active,
   href,
+  onClick,
   indent = 0,
   expandable,
   expanded,
@@ -47,8 +50,10 @@ function SbItem({
   icon: React.ReactNode;
   label: string;
   count?: number;
+  kbd?: string;
   active?: boolean;
   href?: string;
+  onClick?: () => void;
   indent?: number;
   expandable?: boolean;
   expanded?: boolean;
@@ -73,6 +78,7 @@ function SbItem({
       </span>
       <span className="sb-item-ico">{icon}</span>
       <span className="sb-item-label">{label}</span>
+      {kbd ? <span className="sb-item-kbd">{kbd}</span> : null}
       {count != null ? <span className="sb-item-count">{count}</span> : null}
     </>
   );
@@ -81,6 +87,13 @@ function SbItem({
       <Link className={"sb-item" + (active ? " active" : "")} href={href} style={style}>
         {inner}
       </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" className={"sb-item" + (active ? " active" : "")} style={style} onClick={onClick}>
+        {inner}
+      </button>
     );
   }
   return (
@@ -98,6 +111,7 @@ export function Sidebar({ programsCount, elementsCount, programs, elementCatCoun
   const [elementsOpen, setElementsOpen] = useState(onElements);
 
   const cats = orderedKeys(elementCatCounts, ELEMENT_CAT_ORDER);
+  const { open: openSearch } = useSearch();
 
   return (
     <aside className="sidebar">
@@ -111,7 +125,7 @@ export function Sidebar({ programsCount, elementsCount, programs, elementCatCoun
       </Link>
 
       <div className="sb-top">
-        <SbItem icon="⌕" label="Поиск" href="/catalog" />
+        <SbItem icon="⌕" label="Поиск" kbd="⌘K" onClick={openSearch} />
         <SbItem icon="◉" label="Главная" href="/" active={pathname === "/"} />
       </div>
 
