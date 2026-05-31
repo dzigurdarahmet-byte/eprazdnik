@@ -575,3 +575,16 @@ select:focus-visible,
 }
 .used-in-chip:hover { border-color: var(--text-light); }
 .used-in-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+/* ====== Program detail — two-column top block (v4) ====== */
+.detail-top-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 32px;
+  align-items: start;
+}
+.detail-col { min-width: 0; }
+@media (max-width: 900px) {
+  /* Collapse to one column: Легенда → Финал → Активности (DOM order). */
+  .detail-top-grid { grid-template-columns: 1fr; gap: 0; }
+}

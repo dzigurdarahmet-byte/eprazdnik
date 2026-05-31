@@ -75,21 +75,51 @@ export default async function ProgramPage({ params }: { params: Params }) {
     (c) => c.name.trim().length > 0 && !/уточнить\s+у\s+клиента/i.test(c.name),
   );
 
-  // Build the numbered sections that actually have content, then number them
-  // sequentially — sparse cards stay finished-looking, no gaps in the numbering.
-  const sections: Array<{ label: string; node: ReactNode }> = [];
-  if (content.legend) {
-    sections.push({
-      label: "Легенда",
-      node: content.legend.split("\n\n").map((para, i) => (
-        <p key={i} className="detail-text">
-          {para}
-        </p>
-      )),
-    });
-  }
+  // Numbering is sequential across all sections (two-column top block first,
+  // then full-width sections), so sparse cards have no gaps.
+  let counter = 0;
+  const num = () => String(++counter).padStart(2, "0");
+  type Block = { num: string; label: string; node: ReactNode };
+
+  // Two-column top block (v4): left = Легенда + Финал, right = Активности.
+  const legendBlock: Block | null = content.legend
+    ? {
+        num: num(),
+        label: "Легенда",
+        node: content.legend.split("\n\n").map((para, i) => (
+          <p key={i} className="detail-text">
+            {para}
+          </p>
+        )),
+      }
+    : null;
+  const finaleBlock: Block | null = content.finale
+    ? { num: num(), label: "Финал", node: <p className="detail-text">{content.finale}</p> }
+    : null;
+  const activitiesBlock: Block | null =
+    content.activities.length > 0
+      ? {
+          num: num(),
+          label: "Активности",
+          node: (
+            <ol className="acts">
+              {content.activities.map((a, i) => (
+                <li key={i} className="act-row">
+                  <span className="act-num">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="act-name">{a}</span>
+                </li>
+              ))}
+            </ol>
+          ),
+        }
+      : null;
+  const hasTop = Boolean(legendBlock || finaleBlock || activitiesBlock);
+
+  // Full-width sections below the two-column block.
+  const rest: Block[] = [];
   if (characters.length > 0) {
-    sections.push({
+    rest.push({
+      num: num(),
       label: "Персонажи",
       node: (
         <div className="chars-grid">
@@ -117,45 +147,28 @@ export default async function ProgramPage({ params }: { params: Params }) {
       ),
     });
   }
-  if (content.activities.length > 0) {
-    sections.push({
-      label: "Активности",
-      node: (
-        <ol className="acts">
-          {content.activities.map((a, i) => (
-            <li key={i} className="act-row">
-              <span className="act-num">{String(i + 1).padStart(2, "0")}</span>
-              <span className="act-name">{a}</span>
-            </li>
-          ))}
-        </ol>
-      ),
-    });
-  }
-  if (content.finale) {
-    sections.push({ label: "Финал", node: <p className="detail-text">{content.finale}</p> });
-  }
   // Расчёт всегда присутствует — жёлтая плашка валидна по дизайну прототипа.
-  sections.push({
+  rest.push({
+    num: num(),
     label: "Расчёт и расходники",
     node: <Calc title={program.title} pricing={content.pricing} priceFrom={program.priceFrom} />,
   });
   if (content.media.length > 0) {
-    // Split into фото / видео when both are present (как в прототипе); иначе единый блок.
     const videos = content.media.filter(isVideoTile);
     const photos = content.media.filter((t) => !isVideoTile(t));
     if (videos.length > 0 && photos.length > 0) {
-      sections.push({ label: "Медиа фото", node: <MediaGrid tiles={photos} /> });
-      sections.push({ label: "Медиа видео", node: <MediaGrid tiles={videos} /> });
+      rest.push({ num: num(), label: "Медиа фото", node: <MediaGrid tiles={photos} /> });
+      rest.push({ num: num(), label: "Медиа видео", node: <MediaGrid tiles={videos} /> });
     } else {
-      sections.push({ label: "Медиа и материалы", node: <MediaGrid tiles={content.media} /> });
+      rest.push({ num: num(), label: "Медиа и материалы", node: <MediaGrid tiles={content.media} /> });
     }
   }
   if (hasContent(content.creative)) {
-    sections.push({ label: "Творческий блок", node: <LinkOrText section={content.creative} /> });
+    rest.push({ num: num(), label: "Творческий блок", node: <LinkOrText section={content.creative} /> });
   }
   if (content.techRequirements.length > 0) {
-    sections.push({
+    rest.push({
+      num: num(),
       label: "Технический блок",
       node: (
         <ul className="tech-list">
@@ -167,7 +180,8 @@ export default async function ProgramPage({ params }: { params: Params }) {
     });
   }
   if (programElements.length > 0) {
-    sections.push({
+    rest.push({
+      num: num(),
       label: "Элементы программы",
       node: (
         <div className="pcard-grid">
@@ -179,10 +193,10 @@ export default async function ProgramPage({ params }: { params: Params }) {
     });
   }
   if (hasContent(content.scripts)) {
-    sections.push({ label: "Скрипты продаж", node: <LinkOrText section={content.scripts} /> });
+    rest.push({ num: num(), label: "Скрипты продаж", node: <LinkOrText section={content.scripts} /> });
   }
   if (hasContent(content.cases)) {
-    sections.push({ label: "Кейсы", node: <LinkOrText section={content.cases} /> });
+    rest.push({ num: num(), label: "Кейсы", node: <LinkOrText section={content.cases} /> });
   }
 
   return (
@@ -262,9 +276,36 @@ export default async function ProgramPage({ params }: { params: Params }) {
           </PropertyRow>
         </div>
 
-        {sections.map((s, i) => (
+        {hasTop ? (
+          <div className="detail-top-grid">
+            <div className="detail-col">
+              {legendBlock ? (
+                <>
+                  <SectionLabel num={legendBlock.num}>Легенда</SectionLabel>
+                  {legendBlock.node}
+                </>
+              ) : null}
+              {finaleBlock ? (
+                <>
+                  <SectionLabel num={finaleBlock.num}>Финал</SectionLabel>
+                  {finaleBlock.node}
+                </>
+              ) : null}
+            </div>
+            <div className="detail-col">
+              {activitiesBlock ? (
+                <>
+                  <SectionLabel num={activitiesBlock.num}>Активности</SectionLabel>
+                  {activitiesBlock.node}
+                </>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        {rest.map((s) => (
           <Fragment key={s.label}>
-            <SectionLabel num={String(i + 1).padStart(2, "0")}>{s.label}</SectionLabel>
+            <SectionLabel num={s.num}>{s.label}</SectionLabel>
             {s.node}
           </Fragment>
         ))}
