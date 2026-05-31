@@ -9,7 +9,10 @@ describe("Sidebar", () => {
   const props = {
     programsCount: 16,
     elementsCount: 30,
-    formatCounts: { Программа: 8, Квест: 4, Шоу: 4 },
+    programs: [
+      { title: "Холодное Сердце", slug: "holodnoe-serdce", accent: "#3d6fa8" },
+      { title: "Гарри Поттер", slug: "garri-potter", accent: "#7a4a1f" },
+    ],
     elementCatCounts: { Артист: 12, "Ростовая кукла": 6 },
   };
 
@@ -18,10 +21,14 @@ describe("Sidebar", () => {
     expect(container).toMatchSnapshot();
   });
 
-  it("renders only formats that exist in the counts", () => {
-    const { getByText, queryByText } = render(<Sidebar {...props} />);
-    expect(getByText("Квесты")).toBeTruthy();
-    // Тимбилдинги has no count → hidden.
-    expect(queryByText("Тимбилдинги")).toBeNull();
+  it("expands «Программы» into the program list (links to detail)", () => {
+    const { getByText, container } = render(<Sidebar {...props} />);
+    expect(getByText("Холодное Сердце")).toBeTruthy();
+    expect(container.querySelector('a[href="/program/holodnoe-serdce"]')).toBeTruthy();
+  });
+
+  it("renders the «Элементы» section (categories expand on demand)", () => {
+    const { getByText } = render(<Sidebar {...props} />);
+    expect(getByText("Элементы")).toBeTruthy();
   });
 });

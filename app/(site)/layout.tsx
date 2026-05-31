@@ -1,6 +1,6 @@
 // Workspace shell (sidebar + topbar + scroll pane). Wraps all catalog pages but
 // NOT /login, so the gate screen renders bare. Live sidebar counts from Notion.
-import { Sidebar } from "@/components/shell/Sidebar";
+import { Sidebar, type SidebarProgram } from "@/components/shell/Sidebar";
 import { TopBar } from "@/components/shell/TopBar";
 import { listPrograms } from "@/lib/notion/programs";
 import { listElements } from "@/lib/notion/elements";
@@ -11,15 +11,14 @@ export const revalidate = REVALIDATE_SECONDS;
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   let programsCount = 0;
   let elementsCount = 0;
-  const formatCounts: Record<string, number> = {};
+  let sidebarPrograms: SidebarProgram[] = [];
   const elementCatCounts: Record<string, number> = {};
   try {
     const [programs, elements] = await Promise.all([listPrograms(), listElements()]);
     programsCount = programs.length;
     elementsCount = elements.length;
-    for (const p of programs) {
-      if (p.format) formatCounts[p.format] = (formatCounts[p.format] ?? 0) + 1;
-    }
+    // listPrograms already sorts by title (ru) — same default order as the catalog.
+    sidebarPrograms = programs.map((p) => ({ title: p.title, slug: p.slug, accent: p.accent }));
     for (const e of elements) {
       if (e.category) elementCatCounts[e.category] = (elementCatCounts[e.category] ?? 0) + 1;
     }
@@ -36,7 +35,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         <Sidebar
           programsCount={programsCount}
           elementsCount={elementsCount}
-          formatCounts={formatCounts}
+          programs={sidebarPrograms}
           elementCatCounts={elementCatCounts}
         />
         <div className="main-pane">
