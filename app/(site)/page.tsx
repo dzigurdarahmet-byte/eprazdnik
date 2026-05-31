@@ -3,8 +3,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { IconSlot } from "@/components/ui/IconSlot";
-import { Tag } from "@/components/ui/Tag";
-import { statusBadge } from "@/lib/status";
+import { RecentPrograms } from "@/components/home/RecentPrograms";
 import { listPrograms } from "@/lib/notion/programs";
 import { listElements } from "@/lib/notion/elements";
 import { REVALIDATE_SECONDS } from "@/lib/constants";
@@ -23,7 +22,6 @@ function isB2B(tags: string[], audience: string): boolean {
 export default async function HomePage() {
   const [programs, elements] = await Promise.all([listPrograms(), listElements()]);
   const b2bCount = programs.filter((p) => isB2B(p.tags, p.audience)).length;
-  const recents = programs.slice(0, 6);
 
   // Hide-at-zero, единообразно с разделами сайдбара: пустой раздел не показываем,
   // чтобы менеджер не упирался в пустую страницу.
@@ -61,7 +59,7 @@ export default async function HomePage() {
         ))}
       </div>
 
-      {recents.length > 0 ? (
+      {programs.length > 0 ? (
         <>
           <div className="recent-head">
             <h2>Недавно открытые</h2>
@@ -69,27 +67,7 @@ export default async function HomePage() {
               Все программы →
             </Link>
           </div>
-          <div className="recent-grid">
-            {recents.map((p, i) => {
-              const col = i % 3;
-              const row = Math.floor(i / 3);
-              const borderRight = col < 2 ? "1px solid var(--border)" : "none";
-              const borderBottom =
-                row < Math.floor((recents.length - 1) / 3) ? "1px solid var(--border)" : "none";
-              const badge = statusBadge(p.status);
-              const meta = [p.ageRange, p.duration].filter(Boolean).join(" · ");
-              return (
-                <Link key={p.id} href={`/program/${p.slug}`} className="recent-row" style={{ borderRight, borderBottom }}>
-                  <span className="recent-accent" style={{ background: p.accent }} />
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span className="recent-title" style={{ display: "block" }}>{p.title}</span>
-                    {meta ? <span className="recent-sub" style={{ display: "block" }}>{meta}</span> : null}
-                  </span>
-                  {badge ? <Tag color={badge.color}>{badge.dot}</Tag> : null}
-                </Link>
-              );
-            })}
-          </div>
+          <RecentPrograms programs={programs} />
         </>
       ) : null}
 
