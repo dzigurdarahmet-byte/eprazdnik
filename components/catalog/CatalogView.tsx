@@ -3,6 +3,8 @@
 // proto-notion/screen_programs.jsx (minus the create buttons — read-only).
 import { useMemo, useState } from "react";
 import { ProgramCard } from "@/components/catalog/ProgramCard";
+import { TableView } from "@/components/catalog/TableView";
+import { BoardView } from "@/components/catalog/BoardView";
 import { FilterPill } from "@/components/ui/FilterPill";
 import { Tag } from "@/components/ui/Tag";
 import Link from "next/link";
@@ -16,6 +18,14 @@ import {
 import type { ProgramSummary } from "@/types/program";
 
 type FacetKey = "format" | "category" | "status" | "age" | "audience";
+type ViewMode = "gallery" | "list" | "table" | "board";
+
+const VIEW_TABS: Array<{ id: ViewMode; label: string }> = [
+  { id: "gallery", label: "Галерея" },
+  { id: "list", label: "Список" },
+  { id: "table", label: "Таблица" },
+  { id: "board", label: "Доска" },
+];
 
 function FacetDropdown({
   label,
@@ -73,7 +83,7 @@ export function CatalogView({
   initial?: Partial<FilterState>;
 }) {
   const [filter, setFilter] = useState<FilterState>({ ...EMPTY_FILTER, ...initial });
-  const [view, setView] = useState<"gallery" | "list">("gallery");
+  const [view, setView] = useState<ViewMode>("gallery");
   const [openFacet, setOpenFacet] = useState<FacetKey | null>(null);
 
   const facetOptions = useMemo(
@@ -106,18 +116,15 @@ export function CatalogView({
   return (
     <>
       <div className="view-tabs">
-        <button className={"view-tab" + (view === "gallery" ? " active" : "")} onClick={() => setView("gallery")}>
-          Галерея
-        </button>
-        <button className={"view-tab" + (view === "list" ? " active" : "")} onClick={() => setView("list")}>
-          Список
-        </button>
-        <button className="view-tab" disabled title="скоро">
-          Таблица
-        </button>
-        <button className="view-tab" disabled title="скоро">
-          Доска
-        </button>
+        {VIEW_TABS.map((t) => (
+          <button
+            key={t.id}
+            className={"view-tab" + (view === t.id ? " active" : "")}
+            onClick={() => setView(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
         <div className="view-tabs-meta">
           <span>{filtered.length} карточек</span>
         </div>
@@ -155,6 +162,10 @@ export function CatalogView({
             <ProgramCard key={p.id} p={p} />
           ))}
         </div>
+      ) : view === "table" ? (
+        <TableView programs={filtered} />
+      ) : view === "board" ? (
+        <BoardView programs={filtered} />
       ) : (
         <div className="clist">
           {filtered.map((p) => {

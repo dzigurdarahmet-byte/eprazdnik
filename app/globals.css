@@ -520,3 +520,37 @@ select:focus-visible,
   padding: 10px 14px; border-radius: 6px; font-size: 14px; font-weight: 600;
 }
 .login-error { margin-top: 12px; font-size: 13px; color: var(--tag-red-fg); }
+
+/* ====== Catalog — Table view ====== */
+.ptable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ptable th {
+  text-align: left; padding: 0; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.ptable th .th-sort {
+  display: inline-flex; align-items: center; gap: 4px; width: 100%;
+  padding: 8px 10px; background: none; border: none;
+  font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer;
+  font-family: inherit; text-align: left;
+}
+.ptable th .th-sort:hover { color: var(--text); }
+.ptable th .th-sort .arr { color: var(--text-light); font-size: 10px; }
+.ptable td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+.ptable tr:hover td { background: var(--bg-hover); }
+.ptable .cell-name { display: inline-flex; align-items: center; gap: 10px; font-weight: 500; color: var(--text); }
+.ptable .accent-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.ptable td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ====== Catalog — Board (kanban by Статус) ====== */
+.board { display: grid; gap: 10px; align-items: start; }
+.board-col { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+.board-col-head { display: flex; align-items: center; gap: 6px; padding: 4px 6px 10px; }
+.board-col-count { color: var(--text-light); font-size: 12px; font-variant-numeric: tabular-nums; }
+.board-cards { display: flex; flex-direction: column; gap: 8px; }
+.board-card {
+  background: white; border: 1px solid var(--border); border-radius: 6px;
+  padding: 10px 12px; display: block; transition: border-color .1s;
+}
+.board-card:hover { border-color: var(--text-light); }
+.board-card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.board-card-sub { font-size: 11px; color: var(--text-light); margin-top: 3px; }
