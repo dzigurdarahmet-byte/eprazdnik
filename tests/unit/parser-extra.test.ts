@@ -78,4 +78,20 @@ describe("parseProgram — scripts / cases / sheet", () => {
     expect(content.scripts).toEqual({ links: [], paragraphs: [] });
     expect(content.cases).toEqual({ links: [], paragraphs: [] });
   });
+
+  it("parses the «Творческий блок» section (no longer ignored)", () => {
+    const content = parseProgram([
+      heading2("Творческий блок"),
+      paragraph("Реквизит и костюмы под ключ."),
+      bookmark("https://disk.yandex.ru/d/creative", "Мудборд"),
+    ]);
+    expect(content.creative.paragraphs).toEqual(["Реквизит и костюмы под ключ."]);
+    expect(content.creative.links).toHaveLength(1);
+  });
+
+  it("still ignores the body «Элементы программы» section (rendered from relation instead)", () => {
+    const content = parseProgram([heading2("Элементы программы"), paragraph("Это не должно протечь.")]);
+    expect(content.legend).toBe("");
+    expect(content.creative).toEqual({ links: [], paragraphs: [] });
+  });
 });

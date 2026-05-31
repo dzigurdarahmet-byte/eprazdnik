@@ -129,7 +129,7 @@ exports[`Sidebar > matches snapshot with live counts 1`] = `
       </a>
       <a
         class="sb-item"
-        href="/catalog?format=%D0%9A%D0%B2%D0%B5%D1%81%D1%82"
+        href="/program/holodnoe-serdce"
         style="padding-left: 22px;"
       >
         <span
@@ -138,22 +138,20 @@ exports[`Sidebar > matches snapshot with live counts 1`] = `
         <span
           class="sb-item-ico"
         >
-          🧭
+          <span
+            class="sb-dot"
+            style="background: rgb(61, 111, 168);"
+          />
         </span>
         <span
           class="sb-item-label"
         >
-          Квесты
-        </span>
-        <span
-          class="sb-item-count"
-        >
-          4
+          Холодное Сердце
         </span>
       </a>
       <a
         class="sb-item"
-        href="/catalog?format=%D0%A8%D0%BE%D1%83"
+        href="/program/garri-potter"
         style="padding-left: 22px;"
       >
         <span
@@ -162,17 +160,15 @@ exports[`Sidebar > matches snapshot with live counts 1`] = `
         <span
           class="sb-item-ico"
         >
-          🎭
+          <span
+            class="sb-dot"
+            style="background: rgb(122, 74, 31);"
+          />
         </span>
         <span
           class="sb-item-label"
         >
-          Шоу
-        </span>
-        <span
-          class="sb-item-count"
-        >
-          4
+          Гарри Поттер
         </span>
       </a>
       <a

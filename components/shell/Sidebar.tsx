@@ -1,42 +1,20 @@
 "use client";
 // Sidebar — style ported from proto-notion/sidebar.jsx, content driven by real
-// Notion data (§0.5): catalog sections are Формат values (Программы) and Элементы
-// categories, each with a live count. Empty types are hidden.
+// Notion data. «Программы» раскрываются в список самих программ (как в прототипе);
+// «Элементы» — в категории. Empty categories are hidden.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Chevron } from "@/components/ui/Chevron";
 
+export type SidebarProgram = { title: string; slug: string; accent: string };
+
 type Props = {
   programsCount: number;
   elementsCount: number;
-  formatCounts: Record<string, number>;
+  programs: SidebarProgram[];
   elementCatCounts: Record<string, number>;
 };
-
-// Display label + emoji per known Формат value (verified vocabulary, §0.5).
-const FORMAT_META: Record<string, { label: string; icon: string }> = {
-  Программа: { label: "Программы", icon: "📖" },
-  Квест: { label: "Квесты", icon: "🧭" },
-  Шоу: { label: "Шоу", icon: "🎭" },
-  МК: { label: "Мастер-классы", icon: "🎨" },
-  Тимбилдинг: { label: "Тимбилдинги", icon: "🤝" },
-  Велком: { label: "Велком-зоны", icon: "🎉" },
-  Площадка: { label: "Площадка", icon: "📍" },
-  Доп: { label: "Доп. услуги", icon: "➕" },
-  Активность: { label: "Активности", icon: "✨" },
-};
-const FORMAT_ORDER = [
-  "Программа",
-  "Квест",
-  "Шоу",
-  "МК",
-  "Тимбилдинг",
-  "Велком",
-  "Площадка",
-  "Доп",
-  "Активность",
-];
 
 const ELEMENT_CAT_META: Record<string, { label: string; icon: string }> = {
   Артист: { label: "Артисты", icon: "🎬" },
@@ -112,18 +90,13 @@ function SbItem({
   );
 }
 
-export function Sidebar({ programsCount, elementsCount, formatCounts, elementCatCounts }: Props) {
+export function Sidebar({ programsCount, elementsCount, programs, elementCatCounts }: Props) {
   const pathname = usePathname();
   const onCatalog = pathname === "/catalog" || pathname.startsWith("/program");
   const onElements = pathname.startsWith("/elements");
   const [programsOpen, setProgramsOpen] = useState(onCatalog);
   const [elementsOpen, setElementsOpen] = useState(onElements);
 
-  // Drop the catch-all format whose label equals the parent ("Программа" → "Программы"),
-  // so the expanded list never duplicates the parent item.
-  const formats = orderedKeys(formatCounts, FORMAT_ORDER).filter(
-    (v) => (FORMAT_META[v]?.label ?? v) !== "Программы",
-  );
   const cats = orderedKeys(elementCatCounts, ELEMENT_CAT_ORDER);
 
   return (
@@ -157,19 +130,16 @@ export function Sidebar({ programsCount, elementsCount, formatCounts, elementCat
           onToggle={() => setProgramsOpen((o) => !o)}
         />
         {programsOpen
-          ? formats.map((value) => {
-              const meta = FORMAT_META[value] ?? { label: value, icon: "•" };
-              return (
-                <SbItem
-                  key={value}
-                  icon={meta.icon}
-                  label={meta.label}
-                  count={formatCounts[value]}
-                  indent={1}
-                  href={`/catalog?format=${encodeURIComponent(value)}`}
-                />
-              );
-            })
+          ? programs.map((p) => (
+              <SbItem
+                key={p.slug}
+                icon={<span className="sb-dot" style={{ background: p.accent }} />}
+                label={p.title}
+                indent={1}
+                href={`/program/${p.slug}`}
+                active={pathname === `/program/${p.slug}`}
+              />
+            ))
           : null}
 
         <SbItem

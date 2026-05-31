@@ -33,6 +33,7 @@ export const SECTION_IDS = {
   TECH_REQUIREMENTS: "TECH_REQUIREMENTS",
   PRICING: "PRICING",
   MEDIA: "MEDIA",
+  CREATIVE: "CREATIVE",
   SCRIPTS: "SCRIPTS",
   CASES: "CASES",
 } as const;
@@ -49,13 +50,15 @@ export const SECTION_MATCHERS: ReadonlyArray<{ id: SectionId; pattern: RegExp }>
   { id: "CHARACTERS", pattern: /персонаж|геро[йи]/i },
   { id: "PRICING", pattern: /расч[её]т|цен|стоимост/i },
   { id: "MEDIA", pattern: /медиа|видео|фото|материал/i },
+  { id: "CREATIVE", pattern: /творческ/i },
   { id: "SCRIPTS", pattern: /скрипт/i },
   { id: "CASES", pattern: /кейс/i },
 ];
 
 // Sections that must NEVER be exposed publicly even if their headings match.
 // Recognised so the parser resets the cursor and following blocks aren't leaked.
+// «Элементы программы» из тела страницы НЕ парсим — пер-программные элементы
+// рендерятся из relation (getElementsForProgram). «Творческий» теперь — секция.
 export const IGNORED_SECTION_PATTERNS: readonly RegExp[] = [
-  /творческ/i,
   /элемент.*программ/i,
 ];

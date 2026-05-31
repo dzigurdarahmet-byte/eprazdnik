@@ -1,0 +1,107 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`BoardView > matches snapshot 1`] = `
+<div>
+  <div
+    class="board"
+    style="grid-template-columns: repeat(2, 1fr);"
+  >
+    <div
+      class="board-col"
+    >
+      <div
+        class="board-col-head"
+      >
+        <span
+          class="tag tag-green"
+        >
+          <span
+            class="tag-dot"
+          >
+            🟢
+          </span>
+          Готово к продаже
+        </span>
+        <span
+          class="board-col-count"
+        >
+          2
+        </span>
+      </div>
+      <div
+        class="board-cards"
+      >
+        <a
+          class="board-card"
+          href="/program/frost"
+          style="border-left: 3px solid rgb(0, 0, 0);"
+        >
+          <div
+            class="board-card-title"
+          >
+            Холодное Сердце
+          </div>
+          <div
+            class="board-card-sub"
+          />
+        </a>
+        <a
+          class="board-card"
+          href="/program/pirates"
+          style="border-left: 3px solid rgb(0, 0, 0);"
+        >
+          <div
+            class="board-card-title"
+          >
+            Пираты
+          </div>
+          <div
+            class="board-card-sub"
+          />
+        </a>
+      </div>
+    </div>
+    <div
+      class="board-col"
+    >
+      <div
+        class="board-col-head"
+      >
+        <span
+          class="tag tag-yellow"
+        >
+          <span
+            class="tag-dot"
+          >
+            🟡
+          </span>
+          В работе
+        </span>
+        <span
+          class="board-col-count"
+        >
+          1
+        </span>
+      </div>
+      <div
+        class="board-cards"
+      >
+        <a
+          class="board-card"
+          href="/program/harry"
+          style="border-left: 3px solid rgb(0, 0, 0);"
+        >
+          <div
+            class="board-card-title"
+          >
+            Гарри Поттер
+          </div>
+          <div
+            class="board-card-sub"
+          />
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+`;

@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { applyFilters, facetValues, EMPTY_FILTER } from "@/lib/catalog-filter";
+import {
+  applyFilters,
+  facetValues,
+  sortPrograms,
+  groupByStatus,
+  EMPTY_FILTER,
+} from "@/lib/catalog-filter";
 import type { ProgramSummary } from "@/types/program";
 
 function prog(p: Partial<ProgramSummary>): ProgramSummary {
@@ -69,5 +75,43 @@ describe("facetValues", () => {
   it("returns distinct sorted non-empty values", () => {
     expect(facetValues(PROGRAMS, (p) => p.format)).toEqual(["Квест", "Тимбилдинг", "Шоу"]);
     expect(facetValues(PROGRAMS, (p) => p.subtitle)).toEqual([]);
+  });
+});
+
+describe("sortPrograms", () => {
+  it("sorts by title asc/desc (ru locale)", () => {
+    // Квест Пиратов < Корпоратив < Холодное Сердце
+    expect(sortPrograms(PROGRAMS, "title", "asc").map((p) => p.id)).toEqual(["2", "3", "1"]);
+    expect(sortPrograms(PROGRAMS, "title", "desc").map((p) => p.id)).toEqual(["1", "3", "2"]);
+  });
+
+  it("sorts by price with nulls last regardless of direction", () => {
+    const withNull = [
+      prog({ id: "a", priceFrom: 100 }),
+      prog({ id: "b", priceFrom: null }),
+      prog({ id: "c", priceFrom: 50 }),
+    ];
+    expect(sortPrograms(withNull, "price", "asc").map((p) => p.id)).toEqual(["c", "a", "b"]);
+    expect(sortPrograms(withNull, "price", "desc").map((p) => p.id)).toEqual(["a", "c", "b"]);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [...PROGRAMS];
+    sortPrograms(input, "title", "asc");
+    expect(input.map((p) => p.id)).toEqual(["1", "2", "3"]);
+  });
+});
+
+describe("groupByStatus", () => {
+  it("groups into kanban columns ordered green → yellow → red", () => {
+    const groups = groupByStatus(PROGRAMS);
+    expect(groups.map((g) => g.color)).toEqual(["green", "yellow"]);
+    expect(groups[0]?.items.map((p) => p.id).sort()).toEqual(["1", "3"]);
+    expect(groups[1]?.items.map((p) => p.id)).toEqual(["2"]);
+  });
+
+  it("puts programs without a status in a «Без статуса» column last", () => {
+    const groups = groupByStatus([prog({ id: "x", status: "" }), prog({ id: "y", status: "🟢 Готово к продаже" })]);
+    expect(groups[groups.length - 1]?.label).toBe("Без статуса");
   });
 });
